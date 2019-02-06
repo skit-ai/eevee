@@ -9,10 +9,12 @@ from tqdm import tqdm
 
 
 def get_atlas_entity(plute_url: str, text: str):
-    req = requests.post(plute_url, json={"text": text})
-    ents = [ent for ent in req.json()["response"]["aux_entities"] if ent["type"] == "location"]
-
-    return ents[0] if ents else None
+    try:
+        req = requests.post(plute_url, json={"text": text})
+        ents = [ent for ent in req.json()["response"]["aux_entities"] if ent["type"] == "location"]
+        return ents[0] if ents else None
+    except Exception:
+        return None
 
 
 def atlas_error_rate(truth_texts: List[str], pred_texts: List[str], plute_url:str) -> float:
