@@ -20,6 +20,8 @@ def get_atlas_entity(plute_url: str, text: str):
 def atlas_error_rate(truth_texts: List[str], pred_texts: List[str], plute_url:str) -> float:
     """
     Return errors for all the cases where atlas should return something.
+
+    NOTE: Ideally this should be a precision/recall type thing
     """
 
     cases = 0
