@@ -2,7 +2,7 @@
 WER evaluation functions
 """
 
-from typing import List, Tuple
+from typing import List
 
 import requests
 from tqdm import tqdm
@@ -20,11 +20,15 @@ def get_atlas_entity(plute_url: str, text: str):
         return None
 
 
-def wer(reference: str, hypothesis: str, lang: str) -> Tuple[int, int, int, int]:
-    return levenshtein(tokenize(reference, lang), tokenize(hypothesis, lang))
+def wer(reference: str, hypothesis: str, lang: str) -> int:
+    ref_tokens = tokenize(reference, lang)
+    if ref_tokens:
+        return levenshtein(ref_tokens, tokenize(hypothesis, lang)) / len(ref_tokens)
+    else:
+        raise RuntimeError("Empty reference sentence")
 
 
-def atlas_error_rate(truth_texts: List[str], pred_texts: List[str], plute_url:str) -> float:
+def atlas_error_rate(truth_texts: List[str], pred_texts: List[str], plute_url: str) -> float:
     """
     Return errors for all the cases where atlas should return something.
 

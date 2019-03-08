@@ -1,7 +1,7 @@
 from distutils.core import Extension
 
 extensions = [
-    Extension("eevee.levenshtein", sources=["./eevee/levenshtein.cc"])
+    Extension("eevee.levenshtein", sources=["./eevee/levenshtein.c"])
 ]
 
 
