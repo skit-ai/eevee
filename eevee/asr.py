@@ -2,10 +2,13 @@
 WER evaluation functions
 """
 
-from typing import List
+from typing import List, Tuple
 
 import requests
 from tqdm import tqdm
+from yamraz.tokenizer import tokenize
+
+from eevee.levenshtein import levenshtein
 
 
 def get_atlas_entity(plute_url: str, text: str):
@@ -15,6 +18,10 @@ def get_atlas_entity(plute_url: str, text: str):
         return ents[0] if ents else None
     except Exception:
         return None
+
+
+def wer(reference: str, hypothesis: str, lang: str) -> Tuple[int, int, int, int]:
+    return levenshtein(tokenize(reference, lang), tokenize(hypothesis, lang))
 
 
 def atlas_error_rate(truth_texts: List[str], pred_texts: List[str], plute_url:str) -> float:

@@ -2,7 +2,8 @@
 name = "eevee"
 version = "0.1.0"
 description = "Evaluation tools for internal projects"
-authors = []
+authors = ["Abhinav Tushar <lepisma@fastmail.com>"]
+build = "build.py"
 
 [tool.poetry.dependencies]
 python = "^3.6"
