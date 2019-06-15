@@ -2,12 +2,13 @@
 WER evaluation functions
 """
 
+from itertools import product
 from typing import List
 
 from eevee.levenshtein import levenshtein
 
 
-def wer(ref_tokens: List[str], hyp_tokens: List[str]) -> int:
+def wer(ref_tokens: List[str], hyp_tokens: List[str]) -> float:
     """
     Raw Word Error Rate
     """
@@ -15,10 +16,10 @@ def wer(ref_tokens: List[str], hyp_tokens: List[str]) -> int:
     if ref_tokens:
         return levenshtein(ref_tokens, hyp_tokens) / len(ref_tokens)
     else:
-        raise RuntimeError("Empty reference sentence")
+        raise RuntimeError("Empty reference token list")
 
 
-def per(ref_ps: List[List[str]], hyp_ps: List[List[str]]) -> int:
+def per(ref_ps: List[List[str]], hyp_ps: List[List[str]]) -> float:
     """
     Phoneme Error Rate. Inputs are lists of pronunciations (represented as list
     of phonemes). Error which is minimum across the cross join between
@@ -27,4 +28,8 @@ def per(ref_ps: List[List[str]], hyp_ps: List[List[str]]) -> int:
     As of yet, we don't worry about such situations.
     """
 
-    raise NotImplementedError()
+    errors = []
+    for ref_phones, hyp_phones in product(ref_ps, hyp_ps):
+        errors.append(wer(ref_phones, hyp_phones))
+
+    return min(errors)
