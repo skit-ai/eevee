@@ -4,43 +4,68 @@
 
 const int OPERATIONS = 3;
 
-static PyObject* levenshtein_error_matrix(int cost, int *best_operation) {
-  PyObject *error_matrix;
-  // TODO: elegance please
-  long deletion = (best_operation[1] == 0) ? best_operation[0] : 0;
-  long insertion = (best_operation[1] == 1) ? best_operation[0] : 0;
-  long substitution = (best_operation[1] == 2) ? best_operation[0] : 0;
+// Read as transformation cost
+const int XFM_EFFORT = 1;
+const int DELETION_IDX = 0;
+const int INSERTION_IDX = (DELETION_IDX + 1);
+const int SUBSTITUTION_IDX = (INSERTION_IDX + 1);
+const int STATE_FIRST_CELL = 0;
+const int STATE_FIRST_ROW = (STATE_FIRST_CELL + 1);
+const int STATE_FIRST_COL = (STATE_FIRST_ROW + 1);
+const int STATE_BOUNEDED = (STATE_FIRST_COL + 1);
+int LIST_OPERATIONS[] = {0, 0, 0};
+int* DEFAULT_OPERATIONS = LIST_OPERATIONS;
+const char STR_COST[] = "cost";
+const char STR_DELETION[] = "deletion";
+const char STR_INSERTION[] = "insertion";
+const char STR_SUBSTITUTION[] = "substitution";
 
-  // TODO: get rid of this and get something elegant
-  if (best_operation[2] == 0) {
-    deletion += 1;
-  } else if (best_operation[2] == 1) {
-    insertion += 1;
-  } else {
-    substitution += 1;
-  }
-
-  error_matrix = PyDict_New();
-  PyDict_SetItemString(error_matrix, "cost", PyLong_FromLong(cost));
-  PyDict_SetItemString(error_matrix, "deletion", PyLong_FromLong(deletion));
-  PyDict_SetItemString(error_matrix, "insertion", PyLong_FromLong(insertion));
-  PyDict_SetItemString(error_matrix, "substitution", PyLong_FromLong(substitution));
-  return error_matrix;
-}
-
+/** ================================================================================
+ * Struct:: DistanceMatrix
+ * ------------------------
+ * This region contains code that provides helper utilities for calculating
+ * [levenshtein's distance](https://en.wikipedia.org/wiki/Levenshtein_distance).
+ * - Transforms a `reference` string to a `hypothesis` string and returns the cost
+ *   along with breakdown on operations needed for the transformation.
+ * - Transformation functions being:
+ *    1. Deletion
+ *    2. Insertion
+ *    3. Substitution
+ * - utilities for:
+ *     - access:
+ *         - cell above
+ *         - cell before (to the left)
+ *         - cell diagonally above
+ *         - final cost
+ *         - operations that do the transformation while minimizing cost.
+ *         - state of the modification to be made.
+ *     - side-effects:
+ *         - optimize: updates the matrix for each cell with least cost of
+ *           transformation
+ *         - update values in the first column with insertion costs.
+ *         - update values in the first row with deletion costs.
+ * ================================================================================ */
 struct DistanceMatrix {
-  int *matrix;
-  int *operations;
-  PyObject *ref;
-  PyObject *hyp;
+  int* matrix;
+  int* operations;
+  PyObject* ref;
+  PyObject* hyp;
   size_t ref_size;
   size_t hyp_size;
+  // access:
   int (*cell_above)(const struct DistanceMatrix*, int row, int col);
   int (*cell_before)(const struct DistanceMatrix*, int row, int col);
   int (*cell_diag_above)(const struct DistanceMatrix*, int row, int col);
+  int (*get_final_cost)(const struct DistanceMatrix*);
+  int (*get_state)(const struct DistanceMatrix*, int row, int col);
+  int* (*get_best_operations)(const struct DistanceMatrix*);
+
+  // side-effects:
   void (*optimize)(const struct DistanceMatrix*, int row, int col);
-  int (*get_cost)(const struct DistanceMatrix*);
-  int *(*get_best_operation)(const struct DistanceMatrix*);
+  void (*incr_row)(const struct DistanceMatrix*, int idx, int cost);
+  void (*incr_col)(const struct DistanceMatrix*, int idx, int cost);
+  void (*init)(const struct DistanceMatrix*);
+  void (*prn_matrix)(const struct DistanceMatrix*);
 };
 
 int cell_above(const struct DistanceMatrix *d, int row, int col) {
@@ -56,110 +81,164 @@ int cell_diag_above(const struct DistanceMatrix *d, int row, int col) {
 }
 
 void optimize(const struct DistanceMatrix *d, int row, int col) {
-  int left_cell = cell_before(d, row, col);
-  int upper_cell = cell_above(d, row, col);
-  int diag_cell = cell_diag_above(d, row, col);
-
-  if (PyUnicode_Compare(PyList_GetItem(d->ref, row), PyList_GetItem(d->hyp, col)) != 0) {
-    d->matrix[row * d->hyp_size + col] = fmin(left_cell, fmin(upper_cell, diag_cell)) + 1;
-  } else {
-    printf("match i, j: %d %d\n", row, col);
-    d->matrix[row * d->hyp_size + col] = diag_cell;
-  }
+  /**
+   * Calculates the transformation effort needed to convert
+   * the reference-substring to hypothesis-substring.
+   * Cost of transformation is `XFM_EFFORT` for deletion
+   * and insertion errors.
+   *
+   * The effort for substitution seems a bit different but
+   * it is just for the special case where the characters match.
+   * In the match-case we don't need to transform, hence the value
+   * obtained from `chars_match` 0/1 is the effort needed too.
+   */
+  int left_cell_cost = cell_before(d, row, col) + XFM_EFFORT;
+  int upper_cell_cost = cell_above(d, row, col) + XFM_EFFORT;
+  int chars_match = PyUnicode_Compare(PyList_GetItem(d->ref, row), PyList_GetItem(d->hyp, col)) ? 1 : 0;
+  int diag_cell_cost = cell_diag_above(d, row, col) + chars_match;
+  printf("chars match :: %d ||", chars_match);
+  d->matrix[row * d->hyp_size + col] = fmin(left_cell_cost, fmin(upper_cell_cost, diag_cell_cost));
 }
 
-int get_cost(const struct DistanceMatrix *d) {
+int get_final_cost(const struct DistanceMatrix *d) {
   return d->matrix[d->hyp_size * d->ref_size - 1];
 }
 
-int* get_best_operation(const struct DistanceMatrix *d) {
-  // cell to left
-  int op_deletion = (d->hyp_size - 1) * d->ref_size - 1;
+int* get_best_operations(const struct DistanceMatrix *d) {
+  /**
+   * The objective of this function is to return an array(size=3; for each operation)
+   * of integers in which, each index contains:
+   * 0 - Deletion cost
+   * 1 - Insertion cost
+   * 2 - Substitution cost
+   */
+  int deletion_idx = (d->hyp_size - 1) * d->ref_size - 1;
+  int insertion_idx = d->hyp_size * (d->ref_size - 1) - 1;
+  int substitution_idx = (d->hyp_size - 1) * (d->ref_size - 1) - 1;
+  int* operations = calloc(3, sizeof(int));
+  operations[0] = d->matrix[deletion_idx];
+  operations[1] = d->matrix[insertion_idx];
+  operations[2] = d->matrix[substitution_idx];
 
-  // cell to right
-  int op_insertion = d->hyp_size * (d->ref_size - 1) - 1;
+  int penultimate_operation = d->get_final_cost(d) - XFM_EFFORT;
+  int i = 0;
+  for(i = 0; i < OPERATIONS; i++) {
+    operations[i] = penultimate_operation != operations[i] ? 0 : operations[i];
 
-  // cell above diagonally
-  int op_diagonal = (d->hyp_size - 1) * (d->ref_size - 1) - 1;
+    /**
+     * This section adds the final action on the basis of the row and the
+     * size of hypothesis vs reference.
+     *
+     * - If the length of hypothesis > reference, the last action
+     * would be a deletion.
+     * - If the length of hypothesis < reference, the last action
+     * would be an insertion.
+     * - If the lengths are same, the last action would be a substitution.
+     */
+    operations[i] = (d->ref_size > d->hyp_size && i == DELETION_IDX) ? operations[i] + 1 : operations[i];
+    operations[i] = (d->ref_size < d->hyp_size && i == INSERTION_IDX) ? operations[i] + 1 : operations[i];
+    operations[i] = (d->ref_size == d->hyp_size && i == SUBSTITUTION_IDX) ? operations[i] + 1 : operations[i];
+  }
+  return operations;
+}
 
-  int final_cost = d->get_cost(d);
-  int pre_final_cost = final_cost > 0 ? final_cost - 1 : 0;
+void init(const struct DistanceMatrix *d) {
+  d->matrix[0] = PyUnicode_Compare(PyList_GetItem(d->ref, 0), PyList_GetItem(d->hyp, 0)) ? 1 : 0;
+}
 
+void incr_row(const struct DistanceMatrix *d, int idx, int cost) {
+  d->matrix[idx] = d->matrix[idx - 1] + cost;
+}
+
+void incr_col(const struct DistanceMatrix *d, int idx, int cost) {
+  d->matrix[idx * d->hyp_size] = d->matrix[(idx - 1) * d->hyp_size] + cost;
+}
+
+int get_state(const struct DistanceMatrix *d, int row, int col) {
+  return (row == 0 && col == 0)
+    ? STATE_FIRST_CELL : (row == 0)
+    ? STATE_FIRST_ROW : (col == 0)
+    ? STATE_FIRST_COL : STATE_BOUNEDED;
+}
+
+void prn_matrix(const struct DistanceMatrix *d) {
   int row = 0;
-
-  for (row = 0; row < OPERATIONS; row++) {
-    if (pre_final_cost == d->matrix[op_diagonal]) 
-    result[row] = 
+  int col = 0;
+  printf("\n");
+  for (row = 0; row < d->ref_size; row++) {
+    for (col = 0; col < d->hyp_size; col++) {
+      printf(" %d |", d->matrix[(row * d->hyp_size) + col]);
+    }
+    printf("\n");
   }
+}
+// ================================================================================
 
-  // TODO: ***ing ugly
-  if (pre_final_cost == d->matrix[op_diagonal]) {
-    result[0] = d->matrix[op_diagonal];
-    result[1] = 2;
-  } else if (pre_final_cost == d->matrix[op_insertion]) {
-    result[0] = d->matrix[op_insertion];
-    result[1] = 1;
-  } else {
-    result[0] = d->matrix[op_deletion];
-    result[1] = 0;
-  }
 
-  if (d->hyp_size > d->ref_size) {
-    result[2] = 1;
-  } else if (d->hyp_size < d->ref_size) {
-    result[2] = 0;
-  } else {
-    result[2] = 2;
-  }
-  printf("operation: %d index: %d \n", result[0], result[1], result[2]);
-  return result;
+static PyObject* levenshtein_error_matrix(int cost, int *best_operation) {
+  /**
+   * Returns a PyDict {char*: long}
+   * The keys correspond to cost and, operations; Contain integer values: 0 if operation was costlier
+   * but > 0 if operation had minimum cost.
+   * "cost": cost of transforming the `reference` string to the `hypothesis` string.
+   */
+  PyObject *error_matrix;
+  error_matrix = PyDict_New();
+  PyDict_SetItemString(error_matrix, STR_COST, PyLong_FromLong(cost));
+  PyDict_SetItemString(error_matrix, STR_DELETION, PyLong_FromLong(best_operation[DELETION_IDX]));
+  PyDict_SetItemString(error_matrix, STR_INSERTION, PyLong_FromLong(best_operation[INSERTION_IDX]));
+  PyDict_SetItemString(error_matrix, STR_SUBSTITUTION, PyLong_FromLong(best_operation[SUBSTITUTION_IDX]));
+  return error_matrix;
 }
 
 static PyObject* levenshtein_edit_distance(PyObject* ref, PyObject* hyp) {
-  size_t ref_size = PyList_Size(ref);
-  size_t hyp_size = PyList_Size(hyp);
-  int default_operation[2] = {0, 0};
+  int ref_size = PyList_Size(ref);
+  int hyp_size = PyList_Size(hyp);
 
   if (!fmin(ref_size, hyp_size)) {
-    return levenshtein_error_matrix(fmax(ref_size, hyp_size), &default_operation);
+    return levenshtein_error_matrix(fmax(ref_size, hyp_size), DEFAULT_OPERATIONS);
   }
 
-  int* distances = (int *)malloc(ref_size * hyp_size * sizeof(int));
-  int operations[] = {0, 0, 0};
+  int* distances = (int *)calloc(ref_size * hyp_size, sizeof(int));
   struct DistanceMatrix d = {
                              distances,
-                             operations,
+                             DEFAULT_OPERATIONS,
                              ref,
                              hyp,
                              ref_size,
                              hyp_size,
+
                              cell_above,
                              cell_before,
                              cell_diag_above,
+                             get_final_cost,
+                             get_state,
+                             get_best_operations,
+
                              optimize,
-                             get_cost,
-                             get_best_operation
+                             incr_row,
+                             incr_col,
+                             init,
+                             prn_matrix
   };
+
+  int state = 0;
 
   for (int i = 0; i < ref_size; i++) {
     for (int j = 0; j < hyp_size; j++) {
-      // TODO: Think for something nicer looking
-      if (i == 0 && j == 0) {
-        distances[0] = (PyUnicode_Compare(PyList_GetItem(ref, i), PyList_GetItem(hyp, j)) != 0);
-      } else if (i == 0) {
-        distances[j] = distances[j - 1] + 1;
-      } else if (j == 0) {
-        distances[i * hyp_size] = distances[(i - 1) * hyp_size] + 1;
-      } else {
-        d.optimize(&d, i, j);
+      state = d.get_state(&d, i, j);
+      switch (state) {
+        case STATE_FIRST_CELL: d.init(&d); break;
+        case STATE_FIRST_ROW: d.incr_row(&d, j, XFM_EFFORT); break;
+        case STATE_FIRST_COL: d.incr_col(&d, i, XFM_EFFORT); break;
+        case STATE_BOUNEDED: d.optimize(&d, i, j); break;
       }
-      printf("matrix[%d][%d] :: Element after:: %d\n", i, j, d.matrix[(i * hyp_size) + j]);
     }
   }
 
+  int transform_cost = d.get_final_cost(&d);
+  int* best_operation = d.get_best_operations(&d);
   free(distances);
-  int transform_cost = d.get_cost(&d);
-  int *best_operation = d.get_best_operation(&d);
   return levenshtein_error_matrix(transform_cost, best_operation);
 }
 
