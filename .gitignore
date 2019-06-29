@@ -94,3 +94,6 @@ ENV/
 .code
 
 /poetry.lock
+GPATH
+GRTAGS
+GTAGS
