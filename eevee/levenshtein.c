@@ -52,6 +52,7 @@ struct DistanceMatrix {
   PyObject* hyp;
   size_t ref_size;
   size_t hyp_size;
+
   // access:
   int (*cell_above)(const struct DistanceMatrix*, int row, int col);
   int (*cell_before)(const struct DistanceMatrix*, int row, int col);
@@ -90,7 +91,7 @@ void optimize(const struct DistanceMatrix *d, int row, int col) {
    * The effort for substitution seems a bit different but
    * it is just for the special case where the characters match.
    * In the match-case we don't need to transform, hence the value
-   * obtained from `chars_match` 0/1 is the effort needed too.
+   * obtained in `chars_match` 0/1 is also the effort needed.
    */
   int left_cell_cost = cell_before(d, row, col) + XFM_EFFORT;
   int upper_cell_cost = cell_above(d, row, col) + XFM_EFFORT;
@@ -101,6 +102,9 @@ void optimize(const struct DistanceMatrix *d, int row, int col) {
 }
 
 int get_final_cost(const struct DistanceMatrix *d) {
+  /**
+   * The last cell of the matrix contains the cost of conversion
+   */
   return d->matrix[d->hyp_size * d->ref_size - 1];
 }
 
