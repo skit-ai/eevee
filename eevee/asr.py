@@ -12,10 +12,10 @@ def wer(ref_tokens: List[str], hyp_tokens: List[str]) -> float:
     """
     Raw Word Error Rate
     """
-    error_vector = levenshtein(ref_tokens, hyp_tokens)
+    error_vector, error_detail = levenshtein(ref_tokens, hyp_tokens)
     cost_idx = 0
     if ref_tokens:
-        return (error_vector[cost_idx] / len(ref_tokens), *error_vector[cost_idx + 1:])
+        return (error_vector[0]/len(ref_tokens), *error_vector[1:]), error_detail
     else:
         raise RuntimeError("Empty reference token list")
 
@@ -31,6 +31,7 @@ def per(ref_ps: List[List[str]], hyp_ps: List[List[str]]) -> float:
 
     errors = []
     for ref_phones, hyp_phones in product(ref_ps, hyp_ps):
-        errors.append(wer(ref_phones, hyp_phones))
+        error_vector, _ = wer(ref_phones, hyp_phones)
+        errors.append(error_vector[0])
 
     return min(errors)
