@@ -15,13 +15,13 @@ from eevee.levenshtein import levenshtein
     ("hello world".split(), "".split(), (2, 0, 2, 0))
 ])
 def test_levenshtein(reference, hypothesis, output):
-    assert levenshtein(reference, hypothesis) == output[0]
+    assert levenshtein(reference, hypothesis) == output
 
 
 @pytest.mark.parametrize("reference, hypothesis, output", [
-    ([["k", "aa", "t"]], [["k", "ae", "t"]], 1 / 3),
-    ([["k", "aa", "t"]], [["k", "ae", "t"], ["k", "aa", "t"]], 0),
-    ([["k", "aa", "t"], ["k", "ae", "t"]], [["k", "ae", "t"]], 0)
+    ([["k", "aa", "t"]], [["k", "ae", "t"]], (1/3, 0, 0, 1)),
+    ([["k", "aa", "t"]], [["k", "ae", "t"], ["k", "aa", "t"]], (0.0, 0, 0, 0)),
+    ([["k", "aa", "t"], ["k", "ae", "t"]], [["k", "ae", "t"]], (0.0, 0, 0, 0))
 ])
 def test_per(reference, hypothesis, output):
     assert per(reference, hypothesis) == output
