@@ -12,9 +12,10 @@ def wer(ref_tokens: List[str], hyp_tokens: List[str]) -> float:
     """
     Raw Word Error Rate
     """
-
+    error_vector = levenshtein(ref_tokens, hyp_tokens)
+    cost_idx = 0
     if ref_tokens:
-        return levenshtein(ref_tokens, hyp_tokens) / len(ref_tokens)
+        return (error_vector[cost_idx] / len(ref_tokens), *error_vector[cost_idx + 1:])
     else:
         raise RuntimeError("Empty reference token list")
 
