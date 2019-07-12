@@ -15,6 +15,7 @@ const int STATE_FIRST_COL = (STATE_FIRST_ROW + 1);
 const int STATE_BOUNEDED = (STATE_FIRST_COL + 1);
 int LIST_OPERATIONS[] = {0, 0, 0};
 int* DEFAULT_OPERATIONS = LIST_OPERATIONS;
+char DEFAULT_OPERATION_ORDER[] = {};
 const char STR_COST[] = "cost";
 const char STR_DELETION[] = "deletion";
 const char STR_INSERTION[] = "insertion";
@@ -328,15 +329,24 @@ void prn_matrix(const struct DistanceMatrix *d) {
 // ================================================================================
 
 
-static PyObject* levenshtein_error_matrix(int cost, int* operations) {
+static PyObject* levenshtein_error_matrix(int cost, int* operations, char** operation_order) {
   /**
-   * Returns a PyTuple (iiii) -> (cost, deletion, insertion, substitution)
+   * Returns a PyList [(iiii), List[str]] -> [(cost, deletion, insertion, substitution), ["steps"]]
    */
-  return Py_BuildValue("(iiii)",
+  PyObject* list = PyList_New(2);
+  PyObject* error_tuple = Py_BuildValue("(iiii)",
                        cost,
                        operations[DELETION_IDX],
                        operations[INSERTION_IDX],
                        operations[SUBSTITUTION_IDX]);
+  PyObject* error_detail = PyList_New(cost);
+
+  PyList_SetItem(list, 0, error_tuple);
+  for(int i = 0; i < cost; i++) {
+    PyList_SetItem(error_detail, i, Py_BuildValue("s", operation_order[i]));
+  }
+  PyList_SetItem(list, 1, error_detail);
+  return list;
 }
 
 static PyObject* levenshtein_edit_distance(PyObject* ref, PyObject* hyp) {
@@ -345,10 +355,14 @@ static PyObject* levenshtein_edit_distance(PyObject* ref, PyObject* hyp) {
 
   if (!hyp_size) {
     DEFAULT_OPERATIONS[INSERTION_IDX] = ref_size;
-    return levenshtein_error_matrix(fmax(ref_size, hyp_size), DEFAULT_OPERATIONS);
+    return levenshtein_error_matrix(fmax(ref_size, hyp_size),
+                                    DEFAULT_OPERATIONS,
+                                    DEFAULT_OPERATION_ORDER);
   } else if (!ref_size) {
     DEFAULT_OPERATIONS[DELETION_IDX] = hyp_size;
-    return levenshtein_error_matrix(fmax(ref_size, hyp_size), DEFAULT_OPERATIONS);
+    return levenshtein_error_matrix(fmax(ref_size, hyp_size),
+                                    DEFAULT_OPERATIONS,
+                                    DEFAULT_OPERATION_ORDER);
   }
 
   int* distances = (int *)calloc(ref_size * hyp_size, sizeof(int));
@@ -396,7 +410,7 @@ static PyObject* levenshtein_edit_distance(PyObject* ref, PyObject* hyp) {
   char** operation_order = d.get_operation_order(&d, transform_cost, operation_stack);
 
   free(distances);
-  return levenshtein_error_matrix(transform_cost, operation_stack);
+  return levenshtein_error_matrix(transform_cost, operation_stack, operation_order);
 }
 
 static PyObject* levenshtein(PyObject *self, PyObject *args) {
