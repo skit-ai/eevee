@@ -7,15 +7,14 @@ const int OPERATIONS = 3;
 // Read as transformation cost
 const int XFM_EFFORT = 1;
 const int INSERTION_IDX = 0;
-const int DELETION_IDX = (INSERTION_IDX + 1);
-const int SUBSTITUTION_IDX = (DELETION_IDX + 1);
+const int DELETION_IDX = 1;
+const int SUBSTITUTION_IDX = 2;
 const int STATE_FIRST_CELL = 0;
-const int STATE_FIRST_ROW = (STATE_FIRST_CELL + 1);
-const int STATE_FIRST_COL = (STATE_FIRST_ROW + 1);
-const int STATE_BOUNEDED = (STATE_FIRST_COL + 1);
+const int STATE_FIRST_ROW = 1;
+const int STATE_FIRST_COL = 2;
+const int STATE_BOUNEDED = 3;
 int LIST_OPERATIONS[] = {0, 0, 0};
 int* DEFAULT_OPERATIONS = LIST_OPERATIONS;
-char DEFAULT_OPERATION_ORDER[] = {};
 const char STR_COST[] = "cost";
 const char STR_DELETION[] = "deletion";
 const char STR_INSERTION[] = "insertion";
@@ -229,7 +228,6 @@ char** get_operation_order(const struct DistanceMatrix *d, int cost, int* operat
   PyObject* unicode_h;
   char* bytes_r;
   char* bytes_h;
-
   char** operations_order = (char**) calloc(cost, sizeof(char*));
 
   for(i = 0; i < cost; i++) {
@@ -276,11 +274,11 @@ char** get_operation_order(const struct DistanceMatrix *d, int cost, int* operat
     }
 
     switch(min_op_arg) {
-      case INSERTION_IDX: {
+      case 0: {
         sprintf(operations_order[cost - 1], "ins %s\n", bytes_r);
         operation_stack[INSERTION_IDX] += 1;
       }; break;
-      case DELETION_IDX: {
+      case 1: {
         sprintf(operations_order[cost - 1], "del %s\n", bytes_h);
         operation_stack[DELETION_IDX] += 1;
       }; break;
@@ -352,17 +350,22 @@ static PyObject* levenshtein_error_matrix(int cost, int* operations, char** oper
 static PyObject* levenshtein_edit_distance(PyObject* ref, PyObject* hyp) {
   int ref_size = PyList_Size(ref);
   int hyp_size = PyList_Size(hyp);
-
+  char** empty_ref_operation_order = calloc(1, sizeof(char*));
+  char** empty_hyp_operation_order = calloc(1, sizeof(char*));
   if (!hyp_size) {
+    empty_hyp_operation_order[0] = (char*)calloc(100, sizeof(char));
     DEFAULT_OPERATIONS[INSERTION_IDX] = ref_size;
+    sprintf(empty_hyp_operation_order[0], "Insert all chars in reference");
     return levenshtein_error_matrix(fmax(ref_size, hyp_size),
                                     DEFAULT_OPERATIONS,
-                                    DEFAULT_OPERATION_ORDER);
+                                    empty_hyp_operation_order);
   } else if (!ref_size) {
+    empty_ref_operation_order[0] = (char*)calloc(100, sizeof(char));
+    sprintf(empty_ref_operation_order[0], "Delete all chars in hypothesis");
     DEFAULT_OPERATIONS[DELETION_IDX] = hyp_size;
     return levenshtein_error_matrix(fmax(ref_size, hyp_size),
                                     DEFAULT_OPERATIONS,
-                                    DEFAULT_OPERATION_ORDER);
+                                    empty_ref_operation_order);
   }
 
   int* distances = (int *)calloc(ref_size * hyp_size, sizeof(int));
@@ -397,10 +400,10 @@ static PyObject* levenshtein_edit_distance(PyObject* ref, PyObject* hyp) {
     for (int j = 0; j < hyp_size; j++) {
       state = d.get_state(&d, i, j);
       switch (state) {
-        case STATE_FIRST_CELL: d.init(&d); break;
-        case STATE_FIRST_ROW: d.incr_row(&d, j, XFM_EFFORT); break;
-        case STATE_FIRST_COL: d.incr_col(&d, i, XFM_EFFORT); break;
-        case STATE_BOUNEDED: d.optimize(&d, i, j); break;
+        case 0: d.init(&d); break;
+        case 1: d.incr_row(&d, j, XFM_EFFORT); break;
+        case 2: d.incr_col(&d, i, XFM_EFFORT); break;
+        case 3: d.optimize(&d, i, j); break;
       }
     }
   }
