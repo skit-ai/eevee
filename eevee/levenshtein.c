@@ -270,6 +270,7 @@ char** get_operation_order(const struct DistanceMatrix *d, int cost, int* operat
     if (d->str_match(d, r, h) && !d->str_match(d, r, empty)) {
       row = (row > -1) ? row - 1 : row;
       col = (col > -1) ? col - 1 : col;
+      free(ops);
       continue;
     }
 
@@ -289,6 +290,7 @@ char** get_operation_order(const struct DistanceMatrix *d, int cost, int* operat
     }
     row = (row > -1) ? row - 1 : row;
     col = (col > -1) ? col - 1 : col;
+    free(ops);
     cost--;
   }
   return operations_order;
@@ -342,8 +344,11 @@ static PyObject* levenshtein_error_matrix(int cost, int* operations, char** oper
   PyList_SetItem(list, 0, error_tuple);
   for(int i = 0; i < cost; i++) {
     PyList_SetItem(error_detail, i, Py_BuildValue("s", operation_order[i]));
+    free(operation_order[i]);
   }
+
   PyList_SetItem(list, 1, error_detail);
+
   free(operations);
   free(operation_order);
   return list;
