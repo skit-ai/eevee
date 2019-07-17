@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "eevee"
-version = "0.2.5"
+version = "0.2.6"
 description = "Evaluation tools for internal projects"
 authors = ["Abhinav Tushar <lepisma@fastmail.com>"]
 build = "build.py"
