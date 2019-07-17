@@ -7,10 +7,14 @@ build = "build.py"
 
 [tool.poetry.dependencies]
 python = "^3.6"
+pydash = "^4.7"
+python-dateutil = "^2.8"
 
 [tool.poetry.dev-dependencies]
 pytest = "^4.2"
 mypy = "^0.660.0"
+flake8 = "^3.7"
+autopep8 = "^1.4"
 
 [[tool.poetry.source]]
 name = "cheeseshop"

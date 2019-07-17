@@ -4,6 +4,11 @@ all the components here.
 """
 from typing import List, Dict
 
+
+def superset_list(superset: List[Dict], subset: List[Dict]):
+    return set([ent["values"][0]["value"] for ent in superset]).issuperset(set([ent["values"][0]["value"] for ent in subset]))
+
+
 def eq(a: Dict, b: Dict) -> bool:
     return a["values"] == b["values"]
 

@@ -4,6 +4,7 @@ from typing import List, Optional, Dict
 import dateutil.parser
 from pydash import py_
 
+
 def parse_datetime_objects(ent: Dict, to_date=False, to_time=False) -> List:
     """
     Parse datetime type entity and return a list of datetimes or intervals.
@@ -22,7 +23,8 @@ def parse_datetime_objects(ent: Dict, to_date=False, to_time=False) -> List:
         return [_parser(v["value"]) for v in ent["values"]]
     elif value_type == "interval":
         def _parse_interval_value(v):
-            from_dt = _parser(v["value"]["from"]) if "from" in v["value"] else None
+            from_dt = _parser(v["value"]["from"]) if "from" in \
+                v["value"] else None
             to_dt = _parser(v["value"]["to"]) if "to" in v["value"] else None
             return (from_dt, to_dt)
 
@@ -37,7 +39,8 @@ def replace_date(iso_string: str, date: datetime.date) -> str:
     """
 
     parsed = dateutil.parser.parse(iso_string)
-    return parsed.replace(year=date.year, month=date.month, day=date.day).isoformat()
+    return parsed.replace(year=date.year, month=date.month,
+                          day=date.day).isoformat()
 
 
 def merge_time_and_date(time_ent: Dict, date_ent: Dict) -> Dict:
@@ -78,7 +81,8 @@ def merge_time_and_date(time_ent: Dict, date_ent: Dict) -> Dict:
 
 
 def datetime_eq(a: Dict, b: Dict) -> bool:
-    return [v["value"] for v in a["values"]] == [v["value"] for v in b["values"]]
+    return [v["value"] for v in a["values"]] == \
+        [v["value"] for v in b["values"]]
 
 
 def datetime_eq_lists(truth: List[Dict], pred: List[Dict]) -> bool:
