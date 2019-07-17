@@ -39,6 +39,7 @@ def eq_lists(truth: List[Dict], pred: List[Dict], name_only=True) -> bool:
         if len(truth) == 1:
             return bool(pred) and eq(truth[0], pred[0], name_only=name_only)
         elif len(truth) <= len(pred):
-            return all(eq(t, p, name_only=name_only)for t, p in zip(truth, pred))
+            return all(eq(t, p, name_only=name_only)
+                       for t, p in zip(truth, pred))
         else:
             return False

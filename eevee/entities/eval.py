@@ -197,7 +197,8 @@ def atlas_report(total: int, errors: Dict) -> pd.DataFrame:
     - `misfires` are the cases where we found an entity without
       there actually being one.
     - `nofires` are cases where we missed identifying entity
-    - `mismatches_solved` are where our entity results is a superset of truth results and length of result is less than dtmf
+    - `mismatches_solved` are where our entity results is a superset of truth
+        results and length of result is less than dtmf
     - `mismatches_unsolved` are reverse of the above
     """
 
@@ -210,7 +211,8 @@ def atlas_report(total: int, errors: Dict) -> pd.DataFrame:
     nullcounts = total - truecounts
 
     return pd.DataFrame({
-        "": ["total", "truecounts", "misfires", "nofires", "mismatches_solved", "mismatches_unsolved", "nofires + mismatches"],
+        "": ["total", "truecounts", "misfires", "nofires", "mismatches_solved",
+             "mismatches_unsolved", "nofires + mismatches"],
         "counts": [
             total,
             f"{truecounts}/{total}",

@@ -4,6 +4,7 @@ all the components here.
 """
 from typing import List, Dict
 
+
 def people_sum(ents: List[Dict]):
     total_people_child = 0
     total_adult_child = 0
@@ -31,7 +32,8 @@ def people_sum(ents: List[Dict]):
                 if unit in ("veg", "nonveg"):
                     total_veg_nonveg += value
 
-    total_people = max(total_people_child, total_adult_child, total_male_female_child, total_veg_nonveg)
+    total_people = max(total_people_child, total_adult_child,
+                       total_male_female_child, total_veg_nonveg)
 
     if total_people == 0:
         for ent in ents:
