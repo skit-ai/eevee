@@ -82,6 +82,7 @@ celerybeat-schedule
 env/
 venv/
 ENV/
+.envrc
 
 # mkdocs documentation
 /site
@@ -92,6 +93,7 @@ ENV/
 # IDEs
 .idea
 .code
+.vscode
 
 /poetry.lock
 GPATH
