@@ -59,15 +59,15 @@ def merge_time_and_date(time_ent: Dict, date_ent: Dict) -> Dict:
     if value_type == "value":
         # NOTE: We don't change grain etc. so don't use this for anything
         #       serious.
-        return Dict({
+        return {
             **time_ent,
             "values": [
                 {**v, "value": replace_date(v["value"], date)}
                 for v in time_ent["values"]
             ]
-        })
+        }
     elif value_type == "interval":
-        return Dict({
+        return {
             **time_ent,
             "values": [
                 {**v, "value": {
@@ -75,7 +75,7 @@ def merge_time_and_date(time_ent: Dict, date_ent: Dict) -> Dict:
                     for k in ["from", "to"] if k in v["value"]
                 }} for v in time_ent["values"]
             ]
-        })
+        }
     else:
         raise ValueError(f"Unknown type {value_type} for the truth")
 

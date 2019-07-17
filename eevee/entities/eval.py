@@ -1,7 +1,7 @@
 from typing import Any, Dict, List, Tuple
 
 import pandas as pd
-
+import pydash as py_
 import eevee.entities.ord.datetime as ord_datetime
 import eevee.entities.ord.location as ord_location
 import eevee.entities.ord.people as ord_people
@@ -238,8 +238,8 @@ def entity_difference_report(errors: Dict, prev_errors: Dict,
                              error_types: List = ["misfires", "nofires", "mismatches"]) -> pd.DataFrame:
     counts = []
     for error_type in error_types:
-        errors_added = py_.difference_by(errors[error_type], prev_errors[error_type], lambda k: k[1].id)
-        errors_removed = py_.difference_by(prev_errors[error_type], errors[error_type], lambda k: k[1].id)
+        errors_added = py_.difference_by(errors[error_type], prev_errors[error_type], lambda k: k[0])
+        errors_removed = py_.difference_by(prev_errors[error_type], errors[error_type], lambda k: k[0])
 
         counts.append(f"+{len(errors_added)}/-{len(errors_removed)}")
 
