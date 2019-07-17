@@ -357,37 +357,35 @@ static PyObject* levenshtein_error_matrix(int cost, int* operations, char** oper
 static PyObject* levenshtein_edit_distance(PyObject* ref, PyObject* hyp) {
   int ref_size = PyList_Size(ref);
   int hyp_size = PyList_Size(hyp);
-  char** empty_ref_operation_order = calloc(1, sizeof(char*));
-  char** empty_hyp_operation_order = calloc(1, sizeof(char*));
 
-  printf("ref_size: %d", ref_size);
-  printf("hyp_size: %d", hyp_size);
+  int* operation_stack = (int*) calloc(OPERATIONS, sizeof(int));
+
+  operation_stack[0] = 0;
+  operation_stack[1] = 0;
+  operation_stack[2] = 0;
+  char** empty_operation_order = calloc(1, sizeof(char*));
 
   if (!hyp_size) {
-    empty_hyp_operation_order[0] = (char*)calloc(100, sizeof(char));
-    DEFAULT_OPERATIONS[INSERTION_IDX] = ref_size;
-    sprintf(empty_hyp_operation_order[0], "Insert all chars in reference");
+    empty_operation_order[0] = (char*)calloc(500, sizeof(char));
+    operation_stack[INSERTION_IDX] = ref_size;
+    sprintf(empty_operation_order[0], "Insert all chars in reference");
     return levenshtein_error_matrix(fmax(ref_size, hyp_size),
-                                    DEFAULT_OPERATIONS,
-                                    empty_hyp_operation_order);
+                                    operation_stack,
+                                    empty_operation_order);
   } else if (!ref_size) {
-    empty_ref_operation_order[0] = (char*)calloc(100, sizeof(char));
-    sprintf(empty_ref_operation_order[0], "Delete all chars in hypothesis");
-    DEFAULT_OPERATIONS[DELETION_IDX] = hyp_size;
+    empty_operation_order[0] = (char*)calloc(500, sizeof(char));
+    sprintf(empty_operation_order[0], "Delete all chars in hypothesis");
+    operation_stack[DELETION_IDX] = hyp_size;
     return levenshtein_error_matrix(fmax(ref_size, hyp_size),
-                                    DEFAULT_OPERATIONS,
-                                    empty_ref_operation_order);
+                                    operation_stack,
+                                    empty_operation_order);
   }
 
   int* distances = (int*)calloc(ref_size * hyp_size, sizeof(int));
-  int* DEFAULT_OPERATIONS = (int*) calloc(3, sizeof(int));
-  DEFAULT_OPERATIONS[0] = 0;
-  DEFAULT_OPERATIONS[1] = 0;
-  DEFAULT_OPERATIONS[2] = 0;
 
   struct DistanceMatrix d = {
                              distances,
-                             DEFAULT_OPERATIONS,
+                             operation_stack,
                              ref,
                              hyp,
                              ref_size,
@@ -425,7 +423,6 @@ static PyObject* levenshtein_edit_distance(PyObject* ref, PyObject* hyp) {
   }
 
   int transform_cost = d.get_final_cost(&d);
-  int* operation_stack = (int*) calloc(OPERATIONS, sizeof(int));
   char** operation_order = d.get_operation_order(&d, transform_cost, operation_stack);
 
   free(distances);
