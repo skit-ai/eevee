@@ -14,7 +14,7 @@ const int STATE_FIRST_ROW = 1;
 const int STATE_FIRST_COL = 2;
 const int STATE_BOUNEDED = 3;
 int LIST_OPERATIONS[] = {0, 0, 0};
-int* DEFAULT_OPERATIONS = LIST_OPERATIONS;
+int* DEFAULT_OPERATIONS;
 const char STR_COST[] = "cost";
 const char STR_DELETION[] = "deletion";
 const char STR_INSERTION[] = "insertion";
@@ -267,7 +267,7 @@ char** get_operation_order(const struct DistanceMatrix *d, int cost, int* operat
 
     // if string `r` matches `h`
     // skip to the next cell
-    if (d->str_match(d, r, h)) {
+    if (d->str_match(d, r, h) && !d->str_match(d, r, empty)) {
       row = (row > -1) ? row - 1 : row;
       col = (col > -1) ? col - 1 : col;
       continue;
@@ -344,6 +344,8 @@ static PyObject* levenshtein_error_matrix(int cost, int* operations, char** oper
     PyList_SetItem(error_detail, i, Py_BuildValue("s", operation_order[i]));
   }
   PyList_SetItem(list, 1, error_detail);
+  free(operations);
+  free(operation_order);
   return list;
 }
 
@@ -352,6 +354,10 @@ static PyObject* levenshtein_edit_distance(PyObject* ref, PyObject* hyp) {
   int hyp_size = PyList_Size(hyp);
   char** empty_ref_operation_order = calloc(1, sizeof(char*));
   char** empty_hyp_operation_order = calloc(1, sizeof(char*));
+
+  printf("ref_size: %d", ref_size);
+  printf("hyp_size: %d", hyp_size);
+
   if (!hyp_size) {
     empty_hyp_operation_order[0] = (char*)calloc(100, sizeof(char));
     DEFAULT_OPERATIONS[INSERTION_IDX] = ref_size;
@@ -368,7 +374,12 @@ static PyObject* levenshtein_edit_distance(PyObject* ref, PyObject* hyp) {
                                     empty_ref_operation_order);
   }
 
-  int* distances = (int *)calloc(ref_size * hyp_size, sizeof(int));
+  int* distances = (int*)calloc(ref_size * hyp_size, sizeof(int));
+  int* DEFAULT_OPERATIONS = (int*) calloc(3, sizeof(int));
+  DEFAULT_OPERATIONS[0] = 0;
+  DEFAULT_OPERATIONS[1] = 0;
+  DEFAULT_OPERATIONS[2] = 0;
+
   struct DistanceMatrix d = {
                              distances,
                              DEFAULT_OPERATIONS,
