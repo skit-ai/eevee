@@ -6,31 +6,18 @@ from typing import List, Dict
 
 
 def people_sum(ents: List[Dict]):
-    total_people_child = 0
-    total_adult_child = 0
-    total_male_female_child = 0
-    total_veg_nonveg = 0
+    max_person = max([val.get("value") for ent in ents for val in ent["values"] if val.get('unit') in ["person"]], default=0)
+    max_adult = max([val.get("value") for ent in ents for val in ent["values"] if val.get('unit') in ["adult"]], default=0)
+    max_child = max([val.get("value") for ent in ents for val in ent["values"] if val.get('unit') == "child"], default=0)
+    max_male = max([val.get("value") for ent in ents for val in ent["values"] if val.get('unit') == "male"], default=0)
+    max_female = max([val.get("value") for ent in ents for val in ent["values"] if val.get('unit') == "female"], default=0)
+    max_veg = max([val.get("value") for ent in ents for val in ent["values"] if val.get('unit') == "veg"], default=0)
+    max_nonveg = max([val.get("value") for ent in ents for val in ent["values"] if val.get('unit') == "nonveg"], default=0)
 
-    for ent in ents:
-        for val in ent["values"]:
-            unit = val.get("unit")
-            value = val.get("value")
-            if unit:
-                # 1. Add up people entity with unit person | child
-                if unit in ("person", "child"):
-                    total_people_child += value
-
-                # 2. Add up people entity with unit adult | child
-                if unit in ("adult", "child"):
-                    total_adult_child += value
-
-                # 3. Add up people entity with unit male | female | child
-                if unit in ("male", "female", "child"):
-                    total_male_female_child += value
-
-                # 4. Add up people entity with unit veg | non veg
-                if unit in ("veg", "nonveg"):
-                    total_veg_nonveg += value
+    total_people_child = max_person
+    total_adult_child = max_adult + max_child
+    total_male_female_child = max_male + max_female + max_child
+    total_veg_nonveg = max_veg + max_nonveg
 
     total_people = max(total_people_child, total_adult_child,
                        total_male_female_child, total_veg_nonveg)
