@@ -14,36 +14,46 @@ EQ_TYPES = {
     "time": ["datetime", "time"],
     "date": ["datetime", "date"],
     "datetime": ["datetime", "time", "date"],
-    "people": ["people", "number"]
+    "people": ["people", "number"],
+    "location": ["location"]
 }
 
-TEST_FNS = {
+EQ_FNS = {
     "date": ord_datetime.date_eq_lists,
     "time": ord_datetime.time_eq_lists,
     "datetime": ord_datetime.datetime_eq_lists,
-    "people": ord_people.eq_lists
+    "people": ord_people.eq_lists,
+    "location": ord_location.eq_lists
+}
+
+SUPERSET_FNS = {
+    "location": ord_location.superset_list,
+    "time": ord_datetime.time_superset_list
 }
 
 
 def collect_entity_errors(items: List[Tuple[Id, Truth, Pred]],
                           entity_type: str) -> Dict:
-    if entity_type == "location":
-        return collect_atlas_errors(items)
-    elif entity_type in ["time", "people", "date", "datetime"]:
-        return collect_duckling_errors(items, entity_type)
+    if entity_type in ["location", "time"]:
+        return collect_dtmf_entity_errors(items, entity_type)
+    elif entity_type in ["people", "date", "datetime"]:
+        return collect_non_dtmf_errors(items, entity_type)
     else:
         raise NotImplementedError
 
 
-def collect_atlas_errors(items: List[Tuple[Id, Truth, Pred]]) -> Dict:
+def collect_dtmf_entity_errors(items: List[Tuple[Id, Truth, Pred]], entity_type) -> Dict:
     """
-    This is 4 types of basic location errors:
+    In case of entities whose resolution can be solved using DTMF.
+    This is 4 types of basic errors:
 
     1. misfires
     2. nofires
     3. mismatches_solved (mismatches solved by dtmf)
     4. mismatches_unsolved
     """
+    eq_fn = EQ_FNS[entity_type]
+    superset_fn = SUPERSET_FNS[entity_type]
 
     misfires = []
     nofires = []
@@ -52,41 +62,24 @@ def collect_atlas_errors(items: List[Tuple[Id, Truth, Pred]]) -> Dict:
     truecounts = 0
 
     for id, truth, pred in items:
-        pred = [ent for ent in pred if ent["type"] == "location"]
+        pred = [ent for ent in pred if ent["type"] in EQ_TYPES[entity_type]]
 
-        """
-        HACK: For using negative location. location-negative has `type`
-         "LOCATION-PRESENT", and `value` as True/False
-         Since we do not know if the predicted value is correct or not.
-         We only add counts to nofires/misfires in our analysis.
-        """
-        if truth and all(e["type"] == "LOCATION-PRESENT" for e in truth):
-            if all(e["values"][0]["value"] for e in truth) and len(pred) == 0:
-                truecounts += 1
+        if truth:
+            truecounts += 1
+            if pred:
+                if not eq_fn(truth, pred):
+
+                    if len(pred) < 5 and len(py_.uniq([ent["type"] for ent in pred])) == 1 \
+                         and superset_fn(pred, truth):
+                        mismatches_solved.append((id, truth, pred))
+                    else:
+                        mismatches_unsolved.append((id, truth, pred))
+
+            else:
                 nofires.append((id, truth, pred))
-            elif any(not e["values"][0]["value"] for e in truth) and len(pred) > 0:
-                misfires.append((id, truth, pred))
-            else:
-                pass
-
-        elif all(e["type"] == "location" for e in truth):
-            if truth:
-                truecounts += 1
-                if pred:
-                    if not ord_location.eq_lists(truth, pred):
-                        if len(pred) < 5 and ord_location.superset_list(pred, truth):
-                            mismatches_solved.append((id, truth, pred))
-                        else:
-                            mismatches_unsolved.append((id, truth, pred))
-
-                else:
-                    nofires.append((id, truth, pred))
-            else:
-                if not ord_location.eq_lists(truth, pred):
-                    misfires.append((id, truth, pred))
         else:
-            print("Not Handling cases where both `location` and \
-                  `LOCATION-PRESENT` are present.")
+            if not eq_fn(truth, pred):
+                misfires.append((id, truth, pred))
 
     return {
         "misfires": misfires,
@@ -97,16 +90,17 @@ def collect_atlas_errors(items: List[Tuple[Id, Truth, Pred]]) -> Dict:
     }
 
 
-def collect_duckling_errors(items: List[Tuple[Id, Truth, Pred]],
+def collect_non_dtmf_errors(items: List[Tuple[Id, Truth, Pred]],
                             entity_type: str) -> Dict:
     """
+    Entities which are not dtmf in case of confusion.
     Find three basic entity errors:
 
     1. misfires
     2. nofires
     3. mismatches
     """
-    test_fn = TEST_FNS[entity_type]
+    test_fn = EQ_FNS[entity_type]
 
     misfires = []
     nofires = []
@@ -136,13 +130,13 @@ def collect_duckling_errors(items: List[Tuple[Id, Truth, Pred]],
 
 
 def entity_report(total: int, errors: Dict, entity_type: str) -> pd.DataFrame:
-    if entity_type == "location":
-        return atlas_report(total, errors)
-    elif entity_type in ["time", "date", "datetime", "people"]:
-        return duckling_report(total, errors)
+    if entity_type in ["location", "time"]:
+        return dtmf_report(total, errors)
+    elif entity_type in ["date", "datetime", "people"]:
+        return non_dtmf_report(total, errors)
 
 
-def duckling_report(total: int, errors: Dict) -> pd.DataFrame:
+def non_dtmf_report(total: int, errors: Dict) -> pd.DataFrame:
     """
     Return metrics for entity identification. `errors` has the following items.
 
@@ -188,7 +182,7 @@ def duckling_report(total: int, errors: Dict) -> pd.DataFrame:
     })
 
 
-def atlas_report(total: int, errors: Dict) -> pd.DataFrame:
+def dtmf_report(total: int, errors: Dict) -> pd.DataFrame:
     """
     Return metrics for entity identification. `errors` has the following items.
 

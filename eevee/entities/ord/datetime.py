@@ -165,3 +165,14 @@ def time_eq_lists(truth: List[Dict], pred: List[Dict]) -> bool:
         return time_entity and time_eq(truth[0], time_entity)
     else:
         return not time_entity
+
+
+def time_superset_list(truth: List[Dict], pred: List[Dict]) -> bool:
+    """
+    If any of the pred value contains correct time
+    """
+    time_entities = [ent for ent in pred if ent["type"] in ["datetime", "time"]]
+    if truth:
+        return any(time_eq(tru, pred_ent) for pred_ent in time_entities for tru in truth)
+    else:
+        return not time_entities
