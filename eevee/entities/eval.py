@@ -59,6 +59,7 @@ def collect_dtmf_entity_errors(items: List[Tuple[Id, Truth, Pred]], entity_type)
     nofires = []
     mismatches_solved = []
     mismatches_unsolved = []
+    exceed_dtmf_nofires = []
     truecounts = 0
 
     for id, truth, pred in items:
@@ -67,17 +68,21 @@ def collect_dtmf_entity_errors(items: List[Tuple[Id, Truth, Pred]], entity_type)
         if truth:
             truecounts += 1
             if pred:
-                if len(py_.uniq([ent["type"] for ent in pred])) > 1 or any(ent["values"][0]["value"] == "interval" for ent in pred):
+
+                if len(py_.uniq([ent["type"] for ent in pred])) > 1 or any(ent["values"][0].get("type") == "interval" for ent in pred):
                     # HACK: Since we are only worried about location and time
-                    #  for now. In case of location there is only one type,
-                    #  therefore location evaluation wont come here.
+                    #  for now. In case of location there is only one type
+                    #  also it don't have ent type as interval, therefore
+                    #  location evaluation wont come here.
                     if not eq_fn([truth[0]], [pred[0]]):
                         mismatches_unsolved.append((id, truth, pred))
 
                 elif not eq_fn(truth, pred):
-
-                    if len(pred) < 5 and len(py_.uniq([ent["type"] for ent in pred])) == 1 \
-                         and superset_fn(truth, pred):
+                    # Entities would be of same type and non-interval
+                    # HACK: Hard match for just time
+                    if len(pred) >= 5 and entity_type == "time":
+                        exceed_dtmf_nofires.append((id, truth, pred))
+                    elif len(pred) < 5 and superset_fn(pred, truth):
                         mismatches_solved.append((id, truth, pred))
                     else:
                         mismatches_unsolved.append((id, truth, pred))
@@ -93,6 +98,7 @@ def collect_dtmf_entity_errors(items: List[Tuple[Id, Truth, Pred]], entity_type)
         "nofires": nofires,
         "mismatches_solved": mismatches_solved,
         "mismatches_unsolved": mismatches_unsolved,
+        "exceed_dtmf_nofires": exceed_dtmf_nofires,
         "truecounts": truecounts
     }
 
@@ -201,6 +207,8 @@ def dtmf_report(total: int, errors: Dict) -> pd.DataFrame:
     - `mismatches_solved` are where our entity results is a superset of truth
         results and length of result is less than dtmf
     - `mismatches_unsolved` are reverse of the above
+    - `exceed_dtmf_nofires` are cases when we do not convey anything to user
+        because of #predictions exceed dtmf limit (i.e. 4)
     """
 
     truecounts = errors["truecounts"]
@@ -208,12 +216,13 @@ def dtmf_report(total: int, errors: Dict) -> pd.DataFrame:
     n_nofires = len(errors["nofires"])
     n_mismatches_solved = len(errors["mismatches_solved"])
     n_mismatches_unsolved = len(errors["mismatches_unsolved"])
+    n_exceed_dtmf_nofires = len(errors["exceed_dtmf_nofires"])
 
     nullcounts = total - truecounts
 
     return pd.DataFrame({
         "": ["total", "truecounts", "misfires", "nofires", "mismatches_solved",
-             "mismatches_unsolved", "nofires + mismatches"],
+             "mismatches_unsolved", "exceed_dtmf_nofires", "nofires + mismatches"],
         "counts": [
             total,
             f"{truecounts}/{total}",
@@ -221,7 +230,8 @@ def dtmf_report(total: int, errors: Dict) -> pd.DataFrame:
             f"{n_nofires}/{truecounts}",
             f"{n_mismatches_solved}/{truecounts}",
             f"{n_mismatches_unsolved}/{truecounts}",
-            f"{n_nofires + n_mismatches_solved + n_mismatches_unsolved}/{truecounts}"
+            f"{n_exceed_dtmf_nofires}/{truecounts}",            
+            f"{n_nofires + n_mismatches_solved + n_mismatches_unsolved + n_exceed_dtmf_nofires}/{truecounts}"
         ],
         "percent": [
             100 * i for i in [
@@ -230,8 +240,9 @@ def dtmf_report(total: int, errors: Dict) -> pd.DataFrame:
                 n_nofires / truecounts,
                 n_mismatches_solved / truecounts,
                 n_mismatches_unsolved / truecounts,
+                n_exceed_dtmf_nofires / truecounts,
                 (n_nofires + n_mismatches_solved +
-                 n_mismatches_unsolved) / truecounts
+                 n_mismatches_unsolved + n_exceed_dtmf_nofires) / truecounts
             ]
         ]
     })

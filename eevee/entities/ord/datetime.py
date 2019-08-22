@@ -195,13 +195,12 @@ def time_eq_lists(truth: List[Dict], pred: List[Dict]) -> bool:
         return not (pred_values or pred_intervals)
 
 
-def time_superset_list(truth: List[Dict], pred: List[Dict]) -> bool:
+def time_superset_list(superset: List[Dict], subset: List[Dict]) -> bool:
     """
-    Partial overlap also returns True
-    If any of the pred value contains any correct time
+    All time entities in subset is present in superset
     """
-    pred_time_entities = [e for e in pred if e["type"] in ["datetime", "time"]]
-    if truth:
-        return any(time_eq(t_ent, p_ent) for p_ent in pred_time_entities for t_ent in truth)
+    subset_time_entities = [ent for ent in subset if ent["type"] in ["datetime", "time"]]
+    if superset:
+        return all(any([time_eq(sb_ent, sp_ent) for sp_ent in superset]) for sb_ent in subset_time_entities)
     else:
-        return not pred_time_entities
+        return not subset_time_entities
