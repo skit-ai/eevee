@@ -67,10 +67,17 @@ def collect_dtmf_entity_errors(items: List[Tuple[Id, Truth, Pred]], entity_type)
         if truth:
             truecounts += 1
             if pred:
-                if not eq_fn(truth, pred):
+                if len(py_.uniq([ent["type"] for ent in pred])) > 1 or any(ent["values"][0]["value"] == "interval" for ent in pred):
+                    # HACK: Since we are only worried about location and time
+                    #  for now. In case of location there is only one type,
+                    #  therefore location evaluation wont come here.
+                    if not eq_fn([truth[0]], [pred[0]]):
+                        mismatches_unsolved.append((id, truth, pred))
+
+                elif not eq_fn(truth, pred):
 
                     if len(pred) < 5 and len(py_.uniq([ent["type"] for ent in pred])) == 1 \
-                         and superset_fn(pred, truth):
+                         and superset_fn(truth, pred):
                         mismatches_solved.append((id, truth, pred))
                     else:
                         mismatches_unsolved.append((id, truth, pred))

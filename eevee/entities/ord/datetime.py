@@ -157,22 +157,51 @@ def time_eq(truth: Dict, pred: Dict) -> bool:
 
 def time_eq_lists(truth: List[Dict], pred: List[Dict]) -> bool:
     """
-    TODO: Make this a partial comparison
+    Full comparison between truth and pred.
+    Here we compare the interval and values separately.
     """
+    pred_values = []
+    pred_intervals = []
+    for p_ent in pred:
+        if p_ent["type"] in ["datetime", "time"]:
+            if p_ent["values"][0]["type"] == "value":
+                pred_values.extend(parse_datetime_objects(p_ent, to_time=True))
+            elif p_ent["values"][0]["type"] == "interval":
+                pred_intervals.extend(parse_datetime_objects(p_ent, to_time=True))
+            else:
+                raise NotImplementedError
+    pred_values = list(set(pred_values))
+    pred_intervals = list(set(pred_intervals))
 
-    time_entity = py_.find(pred, lambda it: it["type"] in ["datetime", "time"])
-    if truth:
-        return time_entity and time_eq(truth[0], time_entity)
+    truth_values = []
+    truth_intervals = []
+    for t_ent in truth:
+        if t_ent["type"] in ["datetime", "time"]:
+            if t_ent["values"][0]["type"] == "value":
+                truth_values.extend(parse_datetime_objects(t_ent, to_time=True))
+            elif t_ent["values"][0]["type"] == "interval":
+                truth_intervals.extend(parse_datetime_objects(t_ent, to_time=True))
+            else:
+                raise NotImplementedError
+    truth_values = list(set(truth_values))
+    truth_intervals = list(set(truth_intervals))
+
+    if truth_values or truth_intervals:
+        return (len(pred_values) == len(truth_values) and
+                all(p_val in truth_values for p_val in pred_values)) and \
+                (len(pred_intervals) == len(truth_intervals) and
+                 all(p_interval in truth_intervals for p_interval in pred_intervals))
     else:
-        return not time_entity
+        return not (pred_values or pred_intervals)
 
 
 def time_superset_list(truth: List[Dict], pred: List[Dict]) -> bool:
     """
-    If any of the pred value contains correct time
+    Partial overlap also returns True
+    If any of the pred value contains any correct time
     """
-    time_entities = [ent for ent in pred if ent["type"] in ["datetime", "time"]]
+    pred_time_entities = [e for e in pred if e["type"] in ["datetime", "time"]]
     if truth:
-        return any(time_eq(tru, pred_ent) for pred_ent in time_entities for tru in truth)
+        return any(time_eq(t_ent, p_ent) for p_ent in pred_time_entities for t_ent in truth)
     else:
-        return not time_entities
+        return not pred_time_entities
