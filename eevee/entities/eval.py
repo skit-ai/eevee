@@ -36,10 +36,62 @@ def collect_entity_errors(items: List[Tuple[Id, Truth, Pred]],
                           entity_type: str) -> Dict:
     if entity_type in ["location", "time"]:
         return collect_dtmf_entity_errors(items, entity_type)
-    elif entity_type in ["people", "date", "datetime"]:
+    elif entity_type in ["date", "datetime"]:
         return collect_non_dtmf_errors(items, entity_type)
+    elif entity_type in ["people"]:
+        return collect_type_keypad_entity_errors(items, entity_type)
     else:
         raise NotImplementedError
+
+
+def collect_type_keypad_entity_errors(items: List[Tuple[Id, Truth, Pred]], entity_type: str) -> Dict:
+    """
+    In case of entities whose resolution can be solved by typing the values directly
+    into the keypad.
+
+    These are 4 types of basic errors:
+
+    1. misfires
+    2. nofires
+    3. mismatches_solved (mismatches solved by dtmf)
+    4. mismatches_unsolved
+    """
+    eq_fn = EQ_FNS[entity_type]
+
+    misfires = []
+    nofires = []
+    mismatches_solved = []
+    mismatches_unsolved = []
+    exceed_dtmf_nofires = []
+
+    truecounts = 0
+
+    for id, truth, pred in items:
+        pred = [ent for ent in pred if ent["type"] in EQ_TYPES[entity_type]]
+
+        if truth:
+            truecounts += 1
+            if pred:
+                if len(truth) != len(pred):
+                    mismatches_solved.append((id, truth, pred))
+                elif not eq_fn(truth, pred):
+                    eq_fn(truth, pred)
+                    mismatches_unsolved.append((id, truth, pred))
+            else:
+                nofires.append((id, truth, pred))
+        else:
+            if not eq_fn(truth, pred):
+                misfires.append((id, truth, pred))
+
+    return {
+        "misfires": misfires,
+        "nofires": nofires,
+        "mismatches_solved": mismatches_solved,
+        "mismatches_unsolved": mismatches_unsolved,
+        "exceed_dtmf_nofires": exceed_dtmf_nofires,
+        "truecounts": truecounts
+    }
+
 
 
 def collect_dtmf_entity_errors(items: List[Tuple[Id, Truth, Pred]], entity_type) -> Dict:
@@ -143,9 +195,9 @@ def collect_non_dtmf_errors(items: List[Tuple[Id, Truth, Pred]],
 
 
 def entity_report(total: int, errors: Dict, entity_type: str) -> pd.DataFrame:
-    if entity_type in ["location", "time"]:
+    if entity_type in ["location", "time", "people"]:
         return dtmf_report(total, errors)
-    elif entity_type in ["date", "datetime", "people"]:
+    elif entity_type in ["date", "datetime"]:
         return non_dtmf_report(total, errors)
 
 
