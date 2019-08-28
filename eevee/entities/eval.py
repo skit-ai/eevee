@@ -80,7 +80,8 @@ def collect_type_keypad_entity_errors(items: List[Tuple[Id, Truth, Pred]], entit
             else:
                 nofires.append((id, truth, pred))
         else:
-            misfires.append((id, truth, pred))
+            if not eq_fn(truth, pred):
+                misfires.append((id, truth, pred))
 
     return {
         "misfires": misfires,
