@@ -72,12 +72,6 @@ def collect_type_keypad_entity_errors(items: List[Tuple[Id, Truth, Pred]], entit
         if truth:
             truecounts += 1
             if pred:
-                # Assuming length of truth is 1
-                if len(truth) == 1:
-                    raise NotImplementedError("""
-                    True entities should be single valued (for number of people state),
-                    this version of Eevee seems to be incompatible with your data format.
-                    """)
                 if len(pred) > 1:
                     mismatches_solved.append((id, truth, pred))
                 elif not eq_fn(truth, pred):
@@ -86,8 +80,7 @@ def collect_type_keypad_entity_errors(items: List[Tuple[Id, Truth, Pred]], entit
             else:
                 nofires.append((id, truth, pred))
         else:
-            if not eq_fn(truth, pred):
-                misfires.append((id, truth, pred))
+            misfires.append((id, truth, pred))
 
     return {
         "misfires": misfires,
@@ -97,7 +90,6 @@ def collect_type_keypad_entity_errors(items: List[Tuple[Id, Truth, Pred]], entit
         "exceed_dtmf_nofires": exceed_dtmf_nofires,
         "truecounts": truecounts
     }
-
 
 
 def collect_dtmf_entity_errors(items: List[Tuple[Id, Truth, Pred]], entity_type) -> Dict:
