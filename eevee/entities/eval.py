@@ -72,7 +72,13 @@ def collect_type_keypad_entity_errors(items: List[Tuple[Id, Truth, Pred]], entit
         if truth:
             truecounts += 1
             if pred:
-                if len(truth) != len(pred):
+                # Assuming length of truth is 1
+                if len(truth) == 1:
+                    raise NotImplementedError("""
+                    True entities should be single valued (for number of people state),
+                    this version of Eevee seems to be incompatible with your data format.
+                    """)
+                if len(pred) > 1:
                     mismatches_solved.append((id, truth, pred))
                 elif not eq_fn(truth, pred):
                     eq_fn(truth, pred)
