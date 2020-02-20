@@ -12,7 +12,8 @@ from eevee.levenshtein import levenshtein
     ("hello world".split(), "errr".split(), (2, 0, 1, 1)),
     ("hello world".split(), "hello that world".split(), (1, 1, 0, 0)),
     ("hello world".split(), "hola world".split(), (1, 0, 0, 1)),
-    ("hello world".split(), "".split(), (2, 0, 2, 0))
+    ("hello world".split(), "".split(), (2, 0, 2, 0)),
+    ("hello there world".split(), "there world hello".split(), (2, 1, 1, 0))
 ])
 def test_levenshtein(reference, hypothesis, output):
     assert levenshtein(reference, hypothesis)[0] == output
