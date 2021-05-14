@@ -6,6 +6,8 @@ authors = []
 
 [tool.poetry.dependencies]
 python = "^3.8"
+docopt = "^0.6.2"
+scikit-learn = "^0.24.2"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.2.4"
