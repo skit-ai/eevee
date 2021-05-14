@@ -16,5 +16,6 @@ from docopt import docopt
 
 from eevee import __version__
 
-if __name__ == "__main__":
+
+def main():
     args = docopt(__doc__, version=__version__)
