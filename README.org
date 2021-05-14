@@ -1,5 +1,3 @@
 #+TITLE: eevee
 
-[[https://cheeseshop.vernacular.ai/eevee][https://cheeseshop.vernacular.ai/--badger--/eevee.svg]]
-
-Evaluation tools for internal projects
+Evaluation utilities.
