@@ -1,3 +1,3 @@
-#+TITLE: eevee
+# eevee
 
 Evaluation utilities.
