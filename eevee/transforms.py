@@ -208,10 +208,10 @@ class RemoveKaldiNonWords(AbstractTransform):
 class Lemmatize(AbstractTransform):
     def __init__(self, lang='en') -> None:
         try:
-            self.nlp = stanza.Pipeline(lang=lang, processors='tokenize, lemma')
+            self.nlp = stanza.Pipeline(lang=lang, processors='tokenize, lemma', verbose=False, use_gpu=False)
         except FileNotFoundError:
             stanza.download(lang)
-            self.nlp = stanza.Pipeline(lang=lang, processors='tokenize, lemma')
+            self.nlp = stanza.Pipeline(lang=lang, processors='tokenize, lemma', verbose=False, use_gpu=False)
 
     def process_string(self, s: str):
 

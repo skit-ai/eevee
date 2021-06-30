@@ -220,18 +220,18 @@ def compute_asr_measures(
         hypothesis = t(hypothesis)
 
     # Preprocess truth and hypothesis
-    truth, hypothesis = _preprocess(
+    truth, hypothesis, truth_raw, hypothesis_raw = _preprocess(
         truth, hypothesis, truth_transform, hypothesis_transform
     )
-
+    
     # Get the operation counts (#hits, #substitutions, #deletions, #insertions)
     H, S, D, I = _get_operation_counts(truth, hypothesis)
 
     # Compute Word Error Rate
-    wer = float(S + D + I) / float(H + S + D)
+    wer = float(S + D + I) / max(1, float(H + S + D))
 
     # Compute Match Error Rate
-    mer = float(S + D + I) / float(H + S + D + I)
+    mer = float(S + D + I) / max(1, float(H + S + D + I))
 
     # Compute Word Information Preserved
     wip = (float(H) / len(truth)) * (float(H) / len(hypothesis)) if hypothesis else 0
@@ -240,13 +240,32 @@ def compute_asr_measures(
     wil = 1 - wip
 
     # Get hPER and rPER
-    hper, rper = _get_per(truth, hypothesis)
+    hper, rper = _get_per(truth_raw, hypothesis_raw)
 
     # Get CER
-    cer = _get_cer(truth, hypothesis)
+    cer = _get_cer(truth_raw, hypothesis_raw)
 
-    if 'lexicon' in kwargs and kwargs['lexicon'] is not None:
-        phn_error = _get_phn_error(truth, hypothesis, kwargs['lexicon'])
+    oov = 0
+    if "lexicon" in kwargs and kwargs["lexicon"] is not None:
+        phn_error = _get_phn_error(truth_raw, hypothesis_raw, kwargs["lexicon"])
+
+        for word in truth_raw:
+            try:
+                kwargs["lexicon"][word]
+            except KeyError:
+                oov += 1
+        
+    else:
+        phn_error = 0
+
+    if "lm" in kwargs and kwargs["lm"] is not None:
+        ppl = _get_ppl(hypothesis_raw, kwargs["lm"])
+    else:
+        ppl = 0
+    
+    oov_rate = oov/len(truth_raw)
+
+    unk_rate = hypothesis_raw.count("<unk>")/len(truth_raw)
 
     return {
         "wer": wer,
@@ -257,6 +276,9 @@ def compute_asr_measures(
         "hper": hper,
         "rper": rper,
         "phone_error": phn_error,
+        "ppl": ppl,
+        "oov_rate": oov_rate,
+        "unk_rate": unk_rate,
         "hits": H,
         "substitutions": S,
         "deletions": D,
@@ -279,10 +301,14 @@ def _preprocess(
     """
 
     # Apply transforms. By default, it collapses input to a list of words
-    truth = truth_transform(truth)
+    if truth.strip() not in  [" ", ""]:
+        truth = truth_transform(truth)
+    else:
+        truth = [""]
     hypothesis = hypothesis_transform(hypothesis)
 
     # raise an error if the ground truth is empty
+    # doesn't raise an error anymore due to the check in line 271. This is because we want to know the errors in silent segments
     if len(truth) == 0:
         raise ValueError("the ground truth cannot be an empty")
 
@@ -296,7 +322,7 @@ def _preprocess(
     truth_str = "".join(truth_chars)
     hypothesis_str = "".join(hypothesis_chars)
 
-    return truth_str, hypothesis_str
+    return truth_str, hypothesis_str, truth, hypothesis
 
 
 def _get_operation_counts(
@@ -355,9 +381,9 @@ def _get_cer(
     :param hypothesis: ASR hypothesis
     :return: CER (float)
     """
-    truth = list(' '.join(truth))
-    hypothesis = list(' '.join(hypothesis))
-
+    truth = " ".join(truth)
+    hypothesis = " ".join(hypothesis)
+    
     editops = Levenshtein.editops(truth, hypothesis)
 
     S = sum(1 if op[0] == "replace" else 0 for op in editops)
@@ -365,7 +391,7 @@ def _get_cer(
     I = sum(1 if op[0] == "insert" else 0 for op in editops)
     H = len(truth) - (S + D)
 
-    cer = float(S + D + I) / float(H + S + D)
+    cer = float(S + D + I) / max(1, float(H + S + D))
 
     return cer
 
@@ -380,8 +406,14 @@ def _get_phn_error(
     :param lexicon: The ASR lexicon dictionary
     :return: Phone Error Rate (float)
     """
-    truth = ' '.join([lexicon[x] for x in truth]).split()
-    hypothesis = ' '.join([lexicon[x] for x in hypothesis]).split()
+    truth = " ".join([lexicon[x] for x in truth if x in lexicon])
+    hypothesis = " ".join([lexicon[x] for x in hypothesis if x in lexicon])
+
+    vocabulary = set(truth + hypothesis)
+    word2char = dict(zip(vocabulary, range(len(vocabulary))))
+
+    truth = "".join([chr(word2char[w]) for w in truth])
+    hypothesis = "".join([chr(word2char[w]) for w in hypothesis])
 
     editops = Levenshtein.editops(truth, hypothesis)
 
@@ -390,6 +422,54 @@ def _get_phn_error(
     I = sum(1 if op[0] == "insert" else 0 for op in editops)
     H = len(truth) - (S + D)
 
-    phn_er = float(S + D + I) / float(H + S + D)
+    phn_er = float(S + D + I) / max(float(H + S + D), 1)
 
     return phn_er
+
+
+def _get_am_errors(
+    align: List, phone_post: List
+) -> float:
+    """
+    Calculates frame error rate between alignments and AM predictions
+    :param align: AM alignment on ground truth
+    :param phone_post: AM phone posteriors
+    :return: AM Frame Error Rate
+    """
+    
+    align_phones = "".join([chr(int(p)) for p in align])
+    post_phones = "".join([chr(int(p)) for p in phone_post])
+
+    H, S, D, I = _get_operation_counts(align_phones, post_phones)
+
+    # Compute frame error rate
+    fer = float(S + D + I) / max(float(H + S + D), 1)
+    return fer
+
+
+def _get_ppl(
+    sent: Union[str, List], lm
+) -> float:
+    """
+    Calculates perplexity of sentences based on n-gram lm
+    :param sent: Sentence for which perplexity needs to be calculated
+    :param lm: N-Gram LM
+    :return: Perplexity of sentence
+    """
+    if type(sent) == str:
+        sent = sent.split()
+
+    sent = [x for x in sent if x in lm.vocabulary()]
+    sentence = " ".join(sent)
+    # Perplexity = 1 / (P(sent)**(1/len(sent)))
+    if len(sent) > 1:
+        return (1/lm.s(sentence))**(1/len(sent))
+    else:
+        try:
+            return (1/lm.p(sentence))**(1/len(sent))
+        except KeyError:
+            try:
+                return (1/lm.p('<UNK>'))**(1/len(sent))
+            except KeyError:
+                return lm.counts()[0][1]
+
