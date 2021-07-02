@@ -1,8 +1,45 @@
-from typing import List
+from typing import List, Dict, Any
 
 from sklearn.metrics import confusion_matrix
-
 from eevee.types import SlotLabel
+from itertools import groupby
+
+import numpy as np
+
+
+AlternativeMetric = Dict[str, Any]
+
+
+def aggregate_metrics(alternative_metrics: List[AlternativeMetric], aggregation_fn=np.mean) -> AlternativeMetric:
+    """
+    Aggregate metric dictionaries from multiple alternatives using
+    `aggregation_fn`.
+
+    An alternative metric books like the following:
+    {
+      "base": {"metric-name": <metric-value>},
+      "lemmatized": {...},
+      "stopword": {...},
+      "hypothesis": <str>
+    }
+    """
+    # Assuming first alternative has all the keys that are involved.
+    variants = alternative_metrics[0].keys()
+    # Skipping these items. They don't make sense from aggregation standpoint.
+    variant_blacklist = {"hypothesis"}
+
+    output = {}
+    for variant in variants:
+        if variant in variant_blacklist:
+            continue
+
+        metric_dicts = [am[variant] for am in alternative_metrics]
+        output[variant] =  {
+            name: aggregation_fn([m[name] for m in metric_dicts])
+            for name in metric_dicts[0].keys()
+        }
+
+    return output
 
 
 def slot_capture_rate() -> float:
