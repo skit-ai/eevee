@@ -108,7 +108,7 @@ def main():
     else:
         lm = None
 
-    df["results"] = df.progress_apply(lambda x: get_metrics(ref=json.loads(x["transcription"])["text"], hyp=x["alternatives"], lang=lang, lexicon=lexicon, lm=lm, alignment=x["alignment"], phone_post=x["phone_post"], remove_words=remove_words), axis=1)
+    df["results"] = df.progress_apply(lambda x: json.dumps(get_metrics(ref=json.loads(x["transcription"])["text"], hyp=x["alternatives"], lang=lang, lexicon=lexicon, lm=lm, alignment=x["alignment"], phone_post=x["phone_post"], remove_words=remove_words)), axis=1)
     
     df.to_csv(out_path, index=False)
 
