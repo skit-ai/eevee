@@ -6,7 +6,7 @@ from collections import Counter
 from eevee import metrics
 
 
-def get_metrics(ref:str, hyp:Union[str, List], lang: str, remove_words: Union[str, List] = None, lexicon: Union[str, Dict] = None, lm=None, alignment=None, phone_post=None) -> Dict:
+def get_metrics(ref: str, hyp:Union[str, List], lang: str, remove_words: Union[str, List] = None, lexicon: Union[str, Dict] = None, lm=None, alignment=None, phone_post=None) -> Dict:
     """
     Takes ground truth and predictions (can be string or list) and returns related ASR metrics. Optional arguments provide more metrics
     :param ref: ground truth
@@ -135,32 +135,8 @@ def _get_top_n(alternatives: Union[Dict, List]) -> Dict:
     :return: Dictionary with first n averages
     """
     
-    top = {3: {}, 5: {}, 7: {}, 10: {}}
-    
-    for i, x in enumerate(alternatives):    
-        for k in top:
-            if i < k:
-                if len(top[k]) > 0:
-                    top[k]["base"].update(x["base"])
-                    top[k]["lemmatized"].update(x["lemmatized"])
-                    top[k]['alt_count'] += 1
-                    if "stopwords" in x:
-                        top[k]["stopwords"].update(x["stopwords"])
-                else:
-                    top[k]["base"] = Counter(x["base"])
-                    top[k]["lemmatized"] = Counter(x["lemmatized"])
-                    top[k]['alt_count'] = 1
-                    if "stopwords" in x:
-                        top[k]["stopwords"] = Counter(x["stopwords"])
-        
-    for x in top.keys():
-        for k in top[x]:
-            if k != 'alt_count':
-                for metric in top[x][k]:
-                    if metric not in ["hits", "substitutions", "insertions", "deletions"]:
-                        top[x][k][metric] /= min(top[x]['alt_count'], x)
-
-    
+    top = {n: metrics.aggregate_metrics(alternatives[:n]) for n in [3, 5, 7, 10]}
+       
     return {"top_3": top[3], "top_5": top[5], "top_7": top[7], "avg": top[10]}
 
 

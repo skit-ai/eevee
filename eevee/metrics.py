@@ -46,8 +46,9 @@ def aggregate_metrics(alternative_metrics: List[AlternativeMetric], aggregation_
     """
     # Assuming first alternative has all the keys that are involved.
     variants = alternative_metrics[0].keys()
+    # print(variants)
     # Skipping these items. They don't make sense from aggregation standpoint.
-    variant_blacklist = {"hypothesis"}
+    variant_blacklist = {"hyp"}
 
     output = {}
     for variant in variants:
