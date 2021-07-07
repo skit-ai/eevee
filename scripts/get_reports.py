@@ -267,18 +267,20 @@ def main():
     speech_tags = [x for x in buckets if 'speech' in x and 'background' not in x]
     background_tags = [x for x in buckets if 'background' in x]
     noise_tags = [x for x in buckets if 'noise' in x]
-    other_tags = [x for x in buckets if x not in speech_tags + background_tags + noise_tags]
+    len_tags = [x for x in buckets if any(['short', 'long']) in x]
+    other_tags = [x for x in buckets if x not in speech_tags + background_tags + noise_tags + len_tags]
     
     for speech in speech_tags:
         for background in background_tags:
             for noise in noise_tags:
-                for ot in other_tags:
-                    bucket_report.append({
-                        'speech_tag': speech, 'background_tag': background, 'noise_tag': noise, 'bucket': ot,
-                        **_get_bucket_report(view=df[(df[speech] == True) & (df[background] == True) & (df[noise] == True)], bucket=ot, smalltalk=smalltalk, intents=intents)})
+                for length in len_tags:
+                    for ot in other_tags:   
+                        bucket_report.append({
+                            'speech_tag': speech, 'background_tag': background, 'noise_tag': noise, 'sentence_length': length, 'bucket': ot,
+                            **_get_bucket_report(view=df[(df[speech] == True) & (df[background] == True) & (df[noise] == True) & (df[length] == True)], bucket=ot, smalltalk=smalltalk, intents=intents)})
                 
             
-    bucket_report = pd.DataFrame(bucket_report).set_index('speech_tag')
+    bucket_report = pd.DataFrame(bucket_report)
     
     overall_report = pd.DataFrame(overall_report)
     
@@ -288,7 +290,7 @@ def main():
 
     os.makedirs(dest_dir, exist_ok=True)
 
-    bucket_report.to_csv(os.path.join(dest_dir, f'{prefix}bucket-report.csv'))
+    bucket_report.to_csv(os.path.join(dest_dir, f'{prefix}bucket-report.csv'), index=False)
 
     overall_report.to_csv(os.path.join(dest_dir, f'{prefix}overall-report.csv'), index=False)
 
