@@ -20,6 +20,7 @@ import re
 import json
 import sqlite3
 
+import numpy as np
 import yaml
 from docopt import docopt
 import pandas as pd
@@ -163,15 +164,16 @@ def _get_bucket_report(view, bucket, smalltalk, intents):
         view = view[view[bucket]==True]
     
     avg = {}
-    avg['num-samples'] = len(view)
+    avg['IRR-support'] = len(view)
 
-    avg['IRR-precison'], avg['IRR-recall'], _, _ = precision_recall_fscore_support(view['true-tag'], view['pred-tag'], labels=intents + smalltalk + ['_oos_'], average='weighted')
-    avg['IRR-inscope-precison'], avg['IRR-inscope-recall'], _, _ = precision_recall_fscore_support(view['true-tag'], view['pred-tag'], labels=intents, average='weighted')
+    avg['IRR-precision'], avg['IRR-recall'], _, _ = precision_recall_fscore_support(view['true-tag'], view['pred-tag'], labels=intents + smalltalk + ['_oos_'], average='weighted', zero_division=1)
+    avg['IRR-inscope-precision'], avg['IRR-inscope-recall'], _, _ = precision_recall_fscore_support(view['true-tag'], view['pred-tag'], labels=intents, average='weighted', zero_division=1)
     avg['IRR-inscope-support'] = len(view[view['true-tag'].isin(intents)])
-    avg['IRR-smalltalk-precison'], avg['IRR-smalltalk-recall'], _, _ = precision_recall_fscore_support(view['true-tag'], view['pred-tag'], labels=smalltalk, average='weighted')
+    avg['IRR-smalltalk-precision'], avg['IRR-smalltalk-recall'], _, _ = precision_recall_fscore_support(view['true-tag'], view['pred-tag'], labels=smalltalk, average='weighted', zero_division=1)
     avg['IRR-smalltalk-support'] = len(view[view['true-tag'].isin(smalltalk)])
-    avg['IRR-oos-precison'], avg['IRR-oos-recall'], _, avg['IRR-oos-support'] = precision_recall_fscore_support(view['true-tag'], view['pred-tag'], labels=['_oos_'])
-    if avg['num-samples'] != 0:
+    oos_p, oos_r, _, oos_s = precision_recall_fscore_support(view['true-tag'], view['pred-tag'], labels=['_oos_'], zero_division=1)
+    avg['IRR-oos-precision'], avg['IRR-oos-recall'], avg['IRR-oos-support'] = oos_p[0], oos_r[0], oos_s[0]
+    if avg['IRR-support'] != 0:
         avg.update(pd.DataFrame(view.apply(lambda x: _parse_audio_metrics(x['results']), axis=1).dropna().to_list()).mean())
     
         
@@ -187,6 +189,17 @@ def _get_utterance_report(view):
     view['transcription'] = view['transcription'].apply(lambda x: json.loads(x))
 
     return view
+
+
+def _get_potential_improv(view, metric, support, target, index):
+    values = view[metric].tolist()
+    support = view[support].tolist()
+    if support[index] > 0:
+        values[index] = target
+
+    values = np.average(values, weights=support)
+    
+    return values
 
 
 def main():
@@ -244,6 +257,8 @@ def main():
 
     df['long_sentence'] = df['ref-len'] > 2
 
+    df['no_sentence'] = df['ref-len'] == 0
+
     if lang == 'english':
         df['code_mix'] = df.apply(lambda x: True if re.search(diff_lang_set, json.loads(x['transcription'])['text'].lower()) or x['true-tag'] == f'non_{lang}' else False, axis=1)
 
@@ -252,7 +267,7 @@ def main():
 
     df['model_lang'] = ~df['code_mix']
 
-    buckets = list(set(','.join([','.join(x) for x in df['bucket-list'].to_list()]).split(','))) + ['model_lang', 'code_mix', 'short_sentence', 'long_sentence']
+    buckets = list(set(','.join([','.join(x) for x in df['bucket-list'].to_list()]).split(','))) + ['model_lang', 'code_mix', 'short_sentence', 'long_sentence', 'no_sentence']
 
     df.loc[~df["true-tag"].isin(intents + smalltalk), "true-tag"] = "_oos_"
     df.loc[~df["pred-tag"].isin(intents + smalltalk), "pred-tag"] = "_oos_"
@@ -267,7 +282,7 @@ def main():
     speech_tags = [x for x in buckets if 'speech' in x and 'background' not in x]
     background_tags = [x for x in buckets if 'background' in x]
     noise_tags = [x for x in buckets if 'noise' in x]
-    len_tags = [x for x in buckets if any(['short', 'long']) in x]
+    len_tags = [x for x in buckets if '_sentence' in x]
     other_tags = [x for x in buckets if x not in speech_tags + background_tags + noise_tags + len_tags]
     
     for speech in speech_tags:
@@ -280,13 +295,18 @@ def main():
                             **_get_bucket_report(view=df[(df[speech] == True) & (df[background] == True) & (df[noise] == True) & (df[length] == True)], bucket=ot, smalltalk=smalltalk, intents=intents)})
                 
             
-    bucket_report = pd.DataFrame(bucket_report)
+    bucket_report = pd.DataFrame(bucket_report).fillna(0)
     
     overall_report = pd.DataFrame(overall_report)
     
     intent_report = pd.DataFrame(classification_report(df['true-tag'].tolist(), df['pred-tag'].tolist(), output_dict=True)).transpose()
 
     utterance_report = _get_utterance_report(df).drop(columns=buckets + ['bucket'], axis=1)
+
+    
+    for metric in ['IRR', 'IRR-inscope', 'IRR-smalltalk', 'IRR-oos']:
+        bucket_report.insert(bucket_report.columns.get_loc(f'{metric}-support')+1, f'{metric}-precision-potential', bucket_report.apply(lambda x: _get_potential_improv(bucket_report, f'{metric}-precision', f'{metric}-support', 1.0, x.name), axis=1))
+        bucket_report.insert(bucket_report.columns.get_loc(f'{metric}-support')+2, f'{metric}-recall-potential', bucket_report.apply(lambda x: _get_potential_improv(bucket_report, f'{metric}-recall', f'{metric}-support', 1.0, x.name), axis=1))
 
     os.makedirs(dest_dir, exist_ok=True)
 
