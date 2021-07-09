@@ -166,6 +166,9 @@ def _get_bucket_report(view, bucket, smalltalk, intents):
     avg = {}
     avg['IRR-support'] = len(view)
 
+    if avg['IRR-support'] == 0:
+        return {'discard': True}
+
     avg['IRR-precision'], avg['IRR-recall'], _, _ = precision_recall_fscore_support(view['true-tag'], view['pred-tag'], labels=intents + smalltalk + ['_oos_'], average='weighted', zero_division=1)
     avg['IRR-inscope-precision'], avg['IRR-inscope-recall'], _, _ = precision_recall_fscore_support(view['true-tag'], view['pred-tag'], labels=intents, average='weighted', zero_division=1)
     avg['IRR-inscope-support'] = len(view[view['true-tag'].isin(intents)])
@@ -173,10 +176,8 @@ def _get_bucket_report(view, bucket, smalltalk, intents):
     avg['IRR-smalltalk-support'] = len(view[view['true-tag'].isin(smalltalk)])
     oos_p, oos_r, _, oos_s = precision_recall_fscore_support(view['true-tag'], view['pred-tag'], labels=['_oos_'], zero_division=1)
     avg['IRR-oos-precision'], avg['IRR-oos-recall'], avg['IRR-oos-support'] = oos_p[0], oos_r[0], oos_s[0]
-    if avg['IRR-support'] != 0:
-        avg.update(pd.DataFrame(view.apply(lambda x: _parse_audio_metrics(x['results']), axis=1).dropna().to_list()).mean())
     
-        
+    avg.update(pd.DataFrame(view.apply(lambda x: _parse_audio_metrics(x['results']), axis=1).dropna().to_list()).mean())
 
     return avg
 
@@ -290,9 +291,11 @@ def main():
             for noise in noise_tags:
                 for length in len_tags:
                     for ot in other_tags:   
-                        bucket_report.append({
+                        res = {
                             'speech_tag': speech, 'background_tag': background, 'noise_tag': noise, 'sentence_length': length, 'bucket': ot,
-                            **_get_bucket_report(view=df[(df[speech] == True) & (df[background] == True) & (df[noise] == True) & (df[length] == True)], bucket=ot, smalltalk=smalltalk, intents=intents)})
+                            **_get_bucket_report(view=df[(df[speech] == True) & (df[background] == True) & (df[noise] == True) & (df[length] == True)], bucket=ot, smalltalk=smalltalk, intents=intents)}
+                        if 'discard' not in res:
+                            bucket_report.append(res)
                 
             
     bucket_report = pd.DataFrame(bucket_report).fillna(0)
