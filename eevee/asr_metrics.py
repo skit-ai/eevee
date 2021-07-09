@@ -51,7 +51,7 @@ def get_metrics(ref: str, hyp:Union[str, List], lang: str, remove_words: Union[s
         results["am_fer"] = "NA"
         
 
-    return json.dumps(results)
+    return results
 
 
 def _parse_string(ref:str, hyp:Union[str, List], lang: str = "en", remove_words: List = None, lexicon: Dict = None, lm=None) -> Dict:
