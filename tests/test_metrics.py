@@ -1,7 +1,8 @@
 import numpy as np
+import pandas as pd
 import pytest
-
-from eevee.metrics import slot_fnr, slot_fpr, slot_capture_rate, slot_mismatch_rate, slot_retry_rate
+from eevee.metrics import (intent_report, slot_capture_rate, slot_fnr,
+                           slot_fpr, slot_mismatch_rate, slot_retry_rate)
 
 
 @pytest.mark.parametrize("slots_predicted, expected_slot, scr", [
@@ -28,7 +29,6 @@ def test_slot_smr(y_true, y_pred, smr):
     assert slot_mismatch_rate(y_true, y_pred) == smr
 
 
-
 @pytest.mark.parametrize("y_true, y_pred, fnr", [
     ([None, None, None, None], [None, None, None, None], 0),
     ([None, None, None, None], [{}, None, None, None], 0),
@@ -49,3 +49,21 @@ def test_slot_fnr(y_true, y_pred, fnr):
 ])
 def test_slot_fpr(y_true, y_pred, fpr):
     assert slot_fpr(y_true, y_pred) == fpr
+
+
+@pytest.mark.parametrize("y_true, y_pred, macro_f1", [
+    ([{"id": 1, "intent": "a"}],
+     [{"id": 1, "intent": "b"}, {"id": 2, "intent": "a"}],
+     0.0),
+    ([{"id": 1, "intent": "a"}],
+     [{"id": 1, "intent": "a"}, {"id": 2, "intent": "a"}],
+     1.0)
+])
+def test_intents(y_true, y_pred, macro_f1):
+    true_labels = pd.DataFrame(y_true)
+    pred_labels = pd.DataFrame(y_pred)
+
+    report = intent_report(true_labels, pred_labels, output_dict=True)
+
+    print(report)
+    assert report["macro avg"]["f1-score"] == macro_f1
