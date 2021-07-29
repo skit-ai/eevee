@@ -13,6 +13,15 @@ Recognition ones, by default, provide a sliced breakdown report.
 [dataframes](https://github.com/Vernacular-ai/dataframes), which contains
 standard datatype definitions.
 
+## Installation
+
+For now, you have to install eevee using Github release URLs. The current
+version can be installed by using the following:
+
+```bash
+pip install https://github.com/Vernacular-ai/eevee/releases/download/0.5.1/eevee-0.5.1-py3-none-any.whl
+```
+
 ## Usage
 
 Once installed, the most common usage pattern involves passing a reference and
