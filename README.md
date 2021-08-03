@@ -29,3 +29,9 @@ json for further machine consumption. Here is how you use it for intents:
 ```bash
 eevee intent ./tagged.intent.csv ./predicted.intent.csv
 ```
+
+There are a few beta features related to ASR metrics. Since the structure is
+still in progress, we have kept a few dependencies from there as extras.
+Recommended way of working with them is to install the package in development
+mode and do `poetry install -E asr`. Then follow the scripts in `./scripts`.
+These will be moved in the master cli as we keep on developing.
