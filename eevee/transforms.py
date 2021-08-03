@@ -7,10 +7,12 @@ such as filtering out common words and standardizing abbreviations.
 import re
 import string
 
-import stanza
+try:
+    import stanza
+except ImportError:
+    print(":: stanza not found")
 
-from typing import Union, List, Mapping
-
+from typing import List, Mapping, Union
 
 __all__ = [
     "AbstractTransform",
