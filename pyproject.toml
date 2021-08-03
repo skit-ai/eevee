@@ -8,11 +8,18 @@ authors = []
 python = "^3.8"
 docopt = "^0.6.2"
 scikit-learn = "^0.24.2"
+stanza = { version = "^1.2", optional = true }
+levenshtein = "^0.12.0"
+tqdm = "^4.61.0"
 pandas = "^1.3.1"
+
+[tool.poetry.extras]
+asr = ["stanza"]
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.2.4"
 mypy = "^0.812"
+jupyter = "^1.0.0"
 
 [tool.poetry.scripts]
 eevee = "eevee.cli:main"

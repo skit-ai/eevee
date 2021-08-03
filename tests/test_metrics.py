@@ -1,8 +1,9 @@
 import numpy as np
 import pandas as pd
 import pytest
-from eevee.metrics import (intent_report, slot_capture_rate, slot_fnr,
-                           slot_fpr, slot_mismatch_rate, slot_retry_rate)
+from eevee.metrics import (aggregate_metrics, intent_report, slot_capture_rate,
+                           slot_fnr, slot_fpr, slot_mismatch_rate,
+                           slot_retry_rate)
 
 
 @pytest.mark.parametrize("slots_predicted, expected_slot, scr", [
@@ -40,6 +41,32 @@ def test_slot_fnr(y_true, y_pred, fnr):
     assert slot_fnr(y_true, y_pred) == fnr
 
 
+@pytest.mark.parametrize("ams, output", [
+    ([
+        {"base": {"wer": 1}, "lem": {"wer": 0}},
+        {"base": {"wer": 1}, "lem": {"wer": 2}},
+        {"base": {"wer": 1}, "lem": {"wer": 2}},
+        {"base": {"wer": 1}, "lem": {"wer": 4}},
+    ],
+     {"base": {"wer": 1}, "lem": {"wer": 2}})
+])
+def test_aggregate_metrics(ams, output):
+    assert aggregate_metrics(ams) == output
+
+
+@pytest.mark.parametrize("ams, output", [
+    ([
+        {"base": {"wer": 1}, "lem": {"wer": 0}},
+        {"base": {"wer": 1}, "lem": {"wer": 2}},
+        {"base": {"wer": 1}, "lem": {"wer": 2}},
+        {"base": {"wer": 1}, "lem": {"wer": 4}},
+    ],
+     {"base": {"wer": 1}, "lem": {"wer": 0}})
+])
+def test_aggregate_metrics_min(ams, output):
+    assert aggregate_metrics(ams, min) == output
+
+
 @pytest.mark.parametrize("y_true, y_pred, fpr", [
     ([None, None, None, None], [None, None, None, None], 0),
     ([None, None, None, None], [{}, None, None, None], 0.25),
@@ -65,5 +92,4 @@ def test_intents(y_true, y_pred, macro_f1):
 
     report = intent_report(true_labels, pred_labels, output_dict=True)
 
-    print(report)
     assert report["macro avg"]["f1-score"] == macro_f1
