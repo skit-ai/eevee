@@ -21,7 +21,7 @@ def multi_class_classification_report(
     We produce classification report for dataframes `feat_df` and `label_df`.
     `label_df` is not required, if the labels are present within the `feat_df`.
 
-    We can produce subsets of this report by passing a `subsets` argument. 
+    We can produce subsets of this report by passing a `subsets` argument.
     An example subset looks like:
 
     ```python
@@ -31,7 +31,7 @@ def multi_class_classification_report(
     }
     ```
 
-    This automatically sets the `output_dict` to `True`, 
+    This automatically sets the `output_dict` to `True`,
     ... and we return a dict like so:
 
     ```python
@@ -57,8 +57,8 @@ def multi_class_classification_report(
 
     :param feat_df: DataFrame containing prediction value for features and the identifier. Possibly, the true-labels too.
     :type feat_df: pd.DataFrame
-    :param label_df: DataFrame containing identifier to link with feat_df and true-labels, defaults to None
-    :type label_df: Optional[pd.DataFrame], optional
+    :param label_df: DataFrame containing identifier to link with feat_df and true-labels, defaults to an empty DataFrame
+    :type label_df: pd.DataFrame
     :param data_id: Identifier field that is common to feat_df and label_df, defaults to "id"
     :type data_id: str, optional
     :param label_col: Name of the true label column, defaults to "labels"

@@ -32,7 +32,9 @@ def main():
         pred_labels = pd.read_csv(args["<pred-labels>"])
 
         if args["--json"]:
-            output = multi_class_classification_report(true_labels, pred_labels, output_dict=True)
+            output = multi_class_classification_report(
+                true_labels, pred_labels, output_dict=True
+            )
             output = json.dumps(output, indent=2)
         else:
             output = multi_class_classification_report(true_labels, pred_labels)
