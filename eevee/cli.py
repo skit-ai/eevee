@@ -21,7 +21,7 @@ import pandas as pd
 from docopt import docopt
 
 from eevee import __version__
-from eevee.metrics import intent_report
+from eevee.metrics import multi_class_classification_report
 
 
 def main():
@@ -32,9 +32,9 @@ def main():
         pred_labels = pd.read_csv(args["<pred-labels>"])
 
         if args["--json"]:
-            output = intent_report(true_labels, pred_labels, output_dict=True)
+            output = multi_class_classification_report(true_labels, pred_labels, output_dict=True)
             output = json.dumps(output, indent=2)
         else:
-            output = intent_report(true_labels, pred_labels)
+            output = multi_class_classification_report(true_labels, pred_labels)
 
         print(output)
