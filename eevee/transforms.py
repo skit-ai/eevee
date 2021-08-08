@@ -30,7 +30,7 @@ __all__ = [
     "SubstituteWords",
     "ToLowerCase",
     "ToUpperCase",
-    "Lemmatize"
+    "Lemmatize",
 ]
 
 
@@ -208,18 +208,22 @@ class RemoveKaldiNonWords(AbstractTransform):
 
 
 class Lemmatize(AbstractTransform):
-    def __init__(self, lang='en') -> None:
+    def __init__(self, lang="en") -> None:
         try:
-            self.nlp = stanza.Pipeline(lang=lang, processors='tokenize, lemma', verbose=False, use_gpu=False)
+            self.nlp = stanza.Pipeline(
+                lang=lang, processors="tokenize, lemma", verbose=False, use_gpu=False
+            )
         except FileNotFoundError:
             stanza.download(lang)
-            self.nlp = stanza.Pipeline(lang=lang, processors='tokenize, lemma', verbose=False, use_gpu=False)
+            self.nlp = stanza.Pipeline(
+                lang=lang, processors="tokenize, lemma", verbose=False, use_gpu=False
+            )
 
     def process_string(self, s: str):
 
         doc = self.nlp(s)
 
-        return ' '.join([word.lemma for sent in doc.sentences for word in sent.words])
-    
+        return " ".join([word.lemma for sent in doc.sentences for word in sent.words])
+
     def process_list(self, inp: List[str]):
         return [s for s in inp if self.process_string(s) != ""]

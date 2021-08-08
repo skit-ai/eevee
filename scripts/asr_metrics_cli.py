@@ -29,12 +29,12 @@ from eevee.asr_metrics import get_metrics, parse_phone_posterior, parse_alignmen
 
 def main():
     tqdm.pandas()
+
     def get_phone_posts(uuid):
         try:
             return post[uuid]
         except KeyError:
             return None
-
 
     def get_alignment(uuid):
         try:
@@ -43,11 +43,11 @@ def main():
             return None
 
     args = docopt(__doc__)
-    
+
     transcripts = args["--transcripts"]
-    
+
     lang = args["--lang"]
-    
+
     out_path = args["--out"]
     stop_path = args["--stop-path"]
     lexicon = args["--lexicon"]
@@ -55,15 +55,17 @@ def main():
     phone_post = args["--phone-post"]
     lm = args["--lm"]
 
-    if transcripts.endswith('.sqlite'):
+    if transcripts.endswith(".sqlite"):
         with sqlite3.connect(transcripts) as db:
             df = pd.read_sql_query("SELECT * FROM data", db)
             df.rename(columns={"tag": "transcription"}, inplace=True)
             df["uuid"] = df.apply(lambda x: json.loads(x["data"])["uuid"], axis=1)
-            df["alternatives"] = df.apply(lambda x: json.loads(x["data"])["alternatives"], axis=1)
+            df["alternatives"] = df.apply(
+                lambda x: json.loads(x["data"])["alternatives"], axis=1
+            )
     else:
         df = pd.read_json(transcripts)
-        df['uuid'] = df['uuid']
+        df["uuid"] = df["uuid"]
         df.rename(columns={"gasr_output_alternatives": "alternatives"}, inplace=True)
 
     if stop_path:
@@ -71,7 +73,7 @@ def main():
             remove_words = fin.read().split("\n")
     else:
         remove_words = None
-    
+
     # parse lexicon file
     if lexicon:
         with open(lexicon) as fin:
@@ -108,8 +110,22 @@ def main():
     else:
         lm = None
 
-    df["results"] = df.progress_apply(lambda x: json.dumps(get_metrics(ref=json.loads(x["transcription"])["text"], hyp=x["alternatives"], lang=lang, lexicon=lexicon, lm=lm, alignment=x["alignment"], phone_post=x["phone_post"], remove_words=remove_words)), axis=1)
-    
+    df["results"] = df.progress_apply(
+        lambda x: json.dumps(
+            get_metrics(
+                ref=json.loads(x["transcription"])["text"],
+                hyp=x["alternatives"],
+                lang=lang,
+                lexicon=lexicon,
+                lm=lm,
+                alignment=x["alignment"],
+                phone_post=x["phone_post"],
+                remove_words=remove_words,
+            )
+        ),
+        axis=1,
+    )
+
     df.to_csv(out_path, index=False)
 
 
