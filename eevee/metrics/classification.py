@@ -7,7 +7,7 @@ from sklearn.metrics import classification_report, confusion_matrix
 
 def multi_class_classification_report(
     feat_df: pd.DataFrame,
-    label_df: Optional[pd.DataFrame] = None,
+    label_df: pd.DataFrame = pd.DataFrame(),
     data_id: str = "id",
     label_col: str = "labels",
     predicted_col: str = "preds",
@@ -81,7 +81,7 @@ def multi_class_classification_report(
 
     df = (
         feat_df
-        if not label_df
+        if label_df.empty
         else pd.merge(label_df, feat_df, on=data_id, how="inner")
     )
 
