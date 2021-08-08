@@ -3,7 +3,7 @@ import pandas as pd
 import pytest
 from eevee.metrics import (
     aggregate_metrics,
-    intent_report,
+    multi_class_classification_report,
     slot_capture_rate,
     slot_fnr,
     slot_fpr,
@@ -113,13 +113,13 @@ def test_slot_fpr(y_true, y_pred, fpr):
     "y_true, y_pred, macro_f1",
     [
         (
-            [{"id": 1, "intent": "a"}],
-            [{"id": 1, "intent": "b"}, {"id": 2, "intent": "a"}],
+            [{"id": 1, "intent_x": "a"}],
+            [{"id": 1, "intent_y": "b"}, {"id": 2, "intent_y": "a"}],
             0.0,
         ),
         (
-            [{"id": 1, "intent": "a"}],
-            [{"id": 1, "intent": "a"}, {"id": 2, "intent": "a"}],
+            [{"id": 1, "intent_x": "a"}],
+            [{"id": 1, "intent_y": "a"}, {"id": 2, "intent_y": "a"}],
             1.0,
         ),
     ],
@@ -128,6 +128,12 @@ def test_intents(y_true, y_pred, macro_f1):
     true_labels = pd.DataFrame(y_true)
     pred_labels = pd.DataFrame(y_pred)
 
-    report = intent_report(true_labels, pred_labels, output_dict=True)
+    report = multi_class_classification_report(
+        true_labels,
+        pred_labels,
+        label_col="intent_x",
+        predicted_col="intent_y",
+        output_dict=True,
+    )
 
     assert report["macro avg"]["f1-score"] == macro_f1
