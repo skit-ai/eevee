@@ -1,11 +1,10 @@
 from collections import Counter
 from typing import Any, Callable, Dict, List, Mapping, Tuple, Union
 
+import eevee.transforms as tr
 import Levenshtein
 import numpy as np
-
-import eevee.transforms as tr
-
+import pandas as pd
 
 _default_transform = tr.Compose(
     [
@@ -425,3 +424,19 @@ def _get_ppl(sent: Union[str, List], lm) -> float:
                 return (1 / lm.p("<UNK>")) ** (1 / len(sent))
             except KeyError:
                 return lm.counts()[0][1]
+
+
+def asr_wer_report(true_labels: pd.DataFrame, pred_labels: pd.DataFrame) -> pd.DataFrame:
+    """
+    Generate ASR WER report based on true and predicted labels.
+
+    `true_labels` is a CSV following TranscriptionLabel protobuf definition
+    from dataframes. While `pred_labels` follows RichTranscriptionLabel
+    protobuf definition.
+    """
+
+    # TODO: Parse dataframes to get single sentences
+    # TODO: Computer WER and return. This becomes report v1.
+    # TODO: Add min-k variant
+
+    pass
