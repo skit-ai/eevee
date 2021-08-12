@@ -9,7 +9,7 @@ from eevee import metrics
 def get_metrics(
     ref: str,
     hyp: Union[str, List],
-    lang: str,
+    lang: str = None,
     remove_words: Union[str, List] = None,
     lexicon: Union[str, Dict] = None,
     lm=None,
