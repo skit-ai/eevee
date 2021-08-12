@@ -1,13 +1,14 @@
+import itertools
+import json
 from collections import Counter
-from typing import Any, Callable, Dict, List, Mapping, Tuple, Union
+from functools import reduce
+from operator import mul
+from typing import Any, Dict, List, Mapping, Tuple, Union
 
-
+import eevee.transforms as tr
 import Levenshtein
 import numpy as np
 import pandas as pd
-import json
-
-import eevee.transforms as tr
 from eevee.asr_metrics import get_metrics
 
 _default_transform = tr.Compose(
@@ -430,63 +431,65 @@ def _get_ppl(sent: Union[str, List], lm) -> float:
                 return lm.counts()[0][1]
 
 
-def get_first_alter(alternatives: List) -> Dict:
-    try:
-        return alternatives[0]
-    except IndexError:
-        return {}
+def merge_utterances(utterances):
+    """
+    At times when the user is speaking with gaps, we get more than one results
+    from Google ASR, each with its own list of alternatives.
+
+    To make sure that the rest of the systems work fine, we merge those
+    results using a cross join and re-rank them using the following two attributes:
+    1. Sum of index for each utterance
+    2. Product of confidence values
+
+    NOTE: We are still returning items as if the ASR returned a single utterance.
+          Also the confidence values here will be very low so care must be taken
+          in interpretation.
+    """
+
+    if len(utterances) < 2:
+        return utterances
+
+    merged = []
+
+    def _join_transcripts(transcripts):
+        return " ".join(text.strip() for text in transcripts)
+
+    indexed_results = [enumerate(utt) for utt in utterances]
+
+    for tup in itertools.product(*indexed_results):
+        if tup:
+            index_sum = sum(idx for idx, _ in tup)
+            # NOTE: We lose fields other than transcript and confidence here.
+            alternative = {
+                "transcript": _join_transcripts([alt["transcript"] for _, alt in tup]),
+                "confidence": reduce(mul, [alt["confidence"] or 0 for _, alt in tup])
+            }
+            merged.append((index_sum, alternative))
+
+    merged = sorted(merged, key=lambda it: (it[0], -it[1]["confidence"] or 0))[:10]
+    return [[alt for _, alt in merged]]
 
 
-def asr_wer_report(
-    true_labels: pd.DataFrame,
-    pred_labels: pd.DataFrame,
-    data_id: str = "id",
-    true_col: str = "labels",
-    pred_col: str = "preds",
-) -> pd.DataFrame:
+def asr_wer_report(true_labels: pd.DataFrame, pred_labels: pd.DataFrame) -> pd.DataFrame:
     """
     Generate ASR WER report based on true and predicted labels.
-
-    :param true_labels: DataFrame containing tagged transcripts and identifier.
-    :type true_labels: pd.DataFrame
-    :param pred_labels: DataFrame containing transcription alternatives and identifier
-    :type pred_labels: pd.DataFrame
-    :param data_id: Identifier field that is common to feat_df and label_df, defaults to "id"
-    :type data_id: str, optional
-    :param true_col: Name of the true label column, defaults to "labels"
-    :type true_col: str, optional
-    :param predicted_col: Name of the predicted label column, defaults to "preds"
-    :type predicted_col: str, optional
-
 
     `true_labels` is a CSV following TranscriptionLabel protobuf definition
     from dataframes. While `pred_labels` follows RichTranscriptionLabel
     protobuf definition.
-
     """
 
     # TODO: Add min-k variant
+    df = pd.merge(true_labels, pred_labels, on="id", how="inner")
 
-    df = pd.merge(true_labels, pred_labels, on=data_id, how="inner")
-    df[pred_col] = df[pred_col].apply(lambda x: json.loads(x.replace("'", '"')))
+    # TODO: Do validation on type of input
+    df["utterances"] = df["utterances"].apply(lambda it: merge_utterances(json.loads(it)))
 
-    df["metadata"] = df.apply(lambda x: get_metrics(x[true_col], x[pred_col]), axis=1)
-    df.to_csv("test.csv")
+    # TODO: Consider empty predictions
+    df["pred_transcription"] = df["utterances"].apply(lambda utt: utt[0][0]["transcript"])
+    wers = df.apply(lambda row: wer(row["transcription"], row["pred_transcription"]), axis=1)
 
-    df["wer"] = df["metadata"].apply(
-        lambda x: get_first_alter(x["alternatives"]).get("base", {}).get("wer")
-    )
-    df["first_3"] = df["metadata"].apply(
-        lambda x: x.get("first_3", {}).get("base", {}).get("wer")
-    )
-    df["first_5"] = df["metadata"].apply(
-        lambda x: x.get("first_5", {}).get("base", {}).get("wer")
-    )
-    df["first_7"] = df["metadata"].apply(
-        lambda x: x.get("first_7", {}).get("base", {}).get("wer")
-    )
-    df["avg"] = df["metadata"].apply(
-        lambda x: x.get("avg", {}).get("base", {}).get("wer")
-    )
-
-    return df.describe()
+    # TODO: Find WER over the corpus (like this → https://kaldi-asr.org/doc/compute-wer_8cc.html)
+    report = pd.DataFrame({"Metric": ["WER"], "Value": [np.mean(wers)]})
+    report.set_index("Metric", inplace=True)
+    return report
