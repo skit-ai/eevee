@@ -430,6 +430,13 @@ def _get_ppl(sent: Union[str, List], lm) -> float:
                 return lm.counts()[0][1]
 
 
+def get_first_alter(alternatives: List) -> Dict:
+    try:
+        return alternatives[0]
+    except IndexError:
+        return {}
+
+
 def asr_wer_report(
     true_labels: pd.DataFrame,
     pred_labels: pd.DataFrame,
@@ -464,8 +471,11 @@ def asr_wer_report(
     df[pred_col] = df[pred_col].apply(lambda x: json.loads(x.replace("'", '"')))
 
     df["metadata"] = df.apply(lambda x: get_metrics(x[true_col], x[pred_col]), axis=1)
+    df.to_csv("test.csv")
 
-    df["wer"] = df["metadata"].apply(lambda x: x["alternatives"][0]["base"].get("wer"))
+    df["wer"] = df["metadata"].apply(
+        lambda x: get_first_alter(x["alternatives"]).get("base", {}).get("wer")
+    )
     df["first_3"] = df["metadata"].apply(
         lambda x: x.get("first_3", {}).get("base", {}).get("wer")
     )
