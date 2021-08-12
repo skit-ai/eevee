@@ -1,10 +1,14 @@
 from collections import Counter
 from typing import Any, Callable, Dict, List, Mapping, Tuple, Union
 
-import eevee.transforms as tr
+
 import Levenshtein
 import numpy as np
 import pandas as pd
+import json
+
+import eevee.transforms as tr
+from eevee.asr_metrics import get_metrics
 
 _default_transform = tr.Compose(
     [
@@ -35,7 +39,7 @@ def aggregate_metrics(
     Aggregate metric dictionaries from multiple alternatives using
     `aggregation_fn`.
 
-    An alternative metric books like the following:
+    An alternative metric looks like the following:
     {
       "base": {"metric-name": <metric-value>},
       "lemmatized": {...},
@@ -426,17 +430,53 @@ def _get_ppl(sent: Union[str, List], lm) -> float:
                 return lm.counts()[0][1]
 
 
-def asr_wer_report(true_labels: pd.DataFrame, pred_labels: pd.DataFrame) -> pd.DataFrame:
+def asr_wer_report(
+    true_labels: pd.DataFrame,
+    pred_labels: pd.DataFrame,
+    data_id: str = "id",
+    true_col: str = "labels",
+    pred_col: str = "preds",
+) -> pd.DataFrame:
     """
     Generate ASR WER report based on true and predicted labels.
+
+    :param true_labels: DataFrame containing tagged transcripts and identifier.
+    :type true_labels: pd.DataFrame
+    :param pred_labels: DataFrame containing transcription alternatives and identifier
+    :type pred_labels: pd.DataFrame
+    :param data_id: Identifier field that is common to feat_df and label_df, defaults to "id"
+    :type data_id: str, optional
+    :param true_col: Name of the true label column, defaults to "labels"
+    :type true_col: str, optional
+    :param predicted_col: Name of the predicted label column, defaults to "preds"
+    :type predicted_col: str, optional
+
 
     `true_labels` is a CSV following TranscriptionLabel protobuf definition
     from dataframes. While `pred_labels` follows RichTranscriptionLabel
     protobuf definition.
+
     """
 
-    # TODO: Parse dataframes to get single sentences
-    # TODO: Computer WER and return. This becomes report v1.
     # TODO: Add min-k variant
 
-    pass
+    df = pd.merge(true_labels, pred_labels, on=data_id, how="inner")
+    df[pred_col] = df[pred_col].apply(lambda x: json.loads(x.replace("'", '"')))
+
+    df["metadata"] = df.apply(lambda x: get_metrics(x[true_col], x[pred_col]), axis=1)
+
+    df["wer"] = df["metadata"].apply(lambda x: x["alternatives"][0]["base"].get("wer"))
+    df["first_3"] = df["metadata"].apply(
+        lambda x: x.get("first_3", {}).get("base", {}).get("wer")
+    )
+    df["first_5"] = df["metadata"].apply(
+        lambda x: x.get("first_5", {}).get("base", {}).get("wer")
+    )
+    df["first_7"] = df["metadata"].apply(
+        lambda x: x.get("first_7", {}).get("base", {}).get("wer")
+    )
+    df["avg"] = df["metadata"].apply(
+        lambda x: x.get("avg", {}).get("base", {}).get("wer")
+    )
+
+    return df.describe()
