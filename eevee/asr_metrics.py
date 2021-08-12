@@ -194,7 +194,7 @@ def _get_top_n(alternatives: Union[Dict, List]) -> Dict:
 
     top = {n: metrics.aggregate_metrics(alternatives[:n]) for n in [3, 5, 7, 10]}
 
-    return {"top_3": top[3], "top_5": top[5], "top_7": top[7], "avg": top[10]}
+    return {"first_3": top[3], "first_5": top[5], "first_7": top[7], "avg": top[10]}
 
 
 def _get_delta(alternatives: Union[Dict, List], lang: str) -> Dict:
