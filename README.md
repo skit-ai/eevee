@@ -30,6 +30,12 @@ json for further machine consumption. Here is how you use it for intents:
 eevee intent ./tagged.intent.csv ./predicted.intent.csv
 ```
 
+For entities, we have a similar pattern
+
+```bash
+eevee entity ./tagged.entity.csv ./predicted.entity.csv
+```
+
 There are a few beta features related to ASR metrics. Since the structure is
 still in progress, we have kept a few dependencies from there as extras.
 Recommended way of working with them is to install the package in development
