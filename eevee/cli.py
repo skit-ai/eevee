@@ -3,7 +3,7 @@ eevee
 
 Usage:
   eevee intent <true-labels> <pred-labels> [--json]
-  eevee asr <true-label> <pred-label> [--json]
+  eevee asr <true-labels> <pred-labels> [--json]
 
 Options:
   --json                    If true, dump the report in json format for machine
@@ -47,10 +47,15 @@ def main():
         true_labels = pd.read_csv(args["<true-labels>"])
         pred_labels = pd.read_csv(args["<pred-labels>"])
 
-        output = asr_wer_report(true_labels, pred_labels)
+        output = asr_wer_report(
+            true_labels,
+            pred_labels,
+            data_id="uuid",
+            true_col="tag",
+            pred_col="alternatives",
+        )
 
         if args["--json"]:
             print(output.to_json(indent=2))
         else:
             print(output)
-
