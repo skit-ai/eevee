@@ -5,8 +5,8 @@
 `eevee` is a set of standard evaluation utilities for problems that we work on.
 You can use `eevee` both as a python module or as a CLI tool. It works on data
 files with label structures from
-[dataframes](https://github.com/Vernacular-ai/dataframes), which contains
-standard datatype definitions. See `./data` directory for example files.
+[dataframes](https://github.com/Vernacular-ai/dataframes), that has standard
+datatype definitions. See `./data` directory for example files.
 
 ## Installation
 
