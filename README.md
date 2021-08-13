@@ -30,6 +30,12 @@ json for further machine consumption. Here is how you use it for intents:
 eevee intent ./tagged.intent.csv ./predicted.intent.csv
 ```
 
+Similarly, for WER report you can do this:
+
+```bash
+eevee asr ./tagged.transcriptions.csv ./predicted.transcriptions.csv
+```
+
 There are a few beta features related to ASR metrics. Since the structure is
 still in progress, we have kept a few dependencies from there as extras.
 Recommended way of working with them is to install the package in development
