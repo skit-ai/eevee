@@ -9,7 +9,7 @@ import eevee.transforms as tr
 import Levenshtein
 import numpy as np
 import pandas as pd
-from eevee.asr_metrics import get_metrics
+from sklearn.metrics import confusion_matrix
 
 _default_transform = tr.Compose(
     [
@@ -470,6 +470,18 @@ def merge_utterances(utterances):
     return [[alt for _, alt in merged]]
 
 
+def get_first_transcript(utterances) -> str:
+    """
+    Return first transcript from the first utterance. Return '' if utterances
+    are empty.
+    """
+
+    try:
+        return utterances[0][0]["transcript"]
+    except (KeyError, IndexError):
+        return ""
+
+
 def asr_wer_report(true_labels: pd.DataFrame, pred_labels: pd.DataFrame) -> pd.DataFrame:
     """
     Generate ASR WER report based on true and predicted labels.
@@ -477,19 +489,48 @@ def asr_wer_report(true_labels: pd.DataFrame, pred_labels: pd.DataFrame) -> pd.D
     `true_labels` is a CSV following TranscriptionLabel protobuf definition
     from dataframes. While `pred_labels` follows RichTranscriptionLabel
     protobuf definition.
+
+    The report covers the following metrics:
+    - WER: Mean WER over all the utterances.
+    - Utterance FPR: Ratio of utterances where truth is empty but prediction is non-empty.
+    - Utterance FNR: Ratio of utterances where predictions are empty, while the truth is non-empty.
     """
 
     # TODO: Add min-k variant
     df = pd.merge(true_labels, pred_labels, on="id", how="inner")
 
+    # Since empty items in true transcription is read as NaN, we have to
+    # replace them
+    df["transcription"] = df["transcription"].fillna("")
+
     # TODO: Do validation on type of input
     df["utterances"] = df["utterances"].apply(lambda it: merge_utterances(json.loads(it)))
+    df["pred_transcription"] = df["utterances"].apply(get_first_transcript)
 
-    # TODO: Consider empty predictions
-    df["pred_transcription"] = df["utterances"].apply(lambda utt: utt[0][0]["transcript"])
     wers = df.apply(lambda row: wer(row["transcription"], row["pred_transcription"]), axis=1)
 
+    empty_true = df["transcription"] == ""
+    empty_pred = df["pred_transcription"] == ""
+
+    mat = confusion_matrix(empty_true, empty_pred, labels=[False, True])
+
+    total_empty = (mat[1, 0] + mat[1, 1])
+    if total_empty > 0:
+        utterance_fpr = mat[1, 0] / total_empty
+    else:
+        utterance_fpr = 0
+
+    total_non_empty = (mat[0, 0] + mat[0, 1])
+    if total_non_empty > 0:
+        utterance_fnr = mat[0, 1] / total_non_empty
+    else:
+        utterance_fnr = 0
+
     # TODO: Find WER over the corpus (like this → https://kaldi-asr.org/doc/compute-wer_8cc.html)
-    report = pd.DataFrame({"Metric": ["WER"], "Value": [np.mean(wers)]})
+    report = pd.DataFrame({
+        "Metric": ["WER", "Utterance FPR", "Utterance FNR"],
+        "Value": [np.mean(wers), utterance_fpr, utterance_fnr],
+        "Support": [len(df), total_empty, total_non_empty]
+    })
     report.set_index("Metric", inplace=True)
     return report
