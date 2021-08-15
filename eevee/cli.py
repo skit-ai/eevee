@@ -23,7 +23,7 @@ from docopt import docopt
 
 from eevee import __version__
 from eevee.metrics import multi_class_classification_report
-from eevee.metrics.asr import asr_wer_report
+from eevee.metrics.asr import asr_report
 
 
 def main():
@@ -47,7 +47,7 @@ def main():
         true_labels = pd.read_csv(args["<true-labels>"])
         pred_labels = pd.read_csv(args["<pred-labels>"])
 
-        output = asr_wer_report(true_labels, pred_labels)
+        output = asr_report(true_labels, pred_labels)
 
         if args["--json"]:
             print(output.to_json(indent=2))

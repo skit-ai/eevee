@@ -9,7 +9,7 @@ import eevee.transforms as tr
 import Levenshtein
 import numpy as np
 import pandas as pd
-from sklearn.metrics import confusion_matrix
+from eevee.metrics.utils import fpr_fnr
 
 _default_transform = tr.Compose(
     [
@@ -482,9 +482,9 @@ def get_first_transcript(utterances) -> str:
         return ""
 
 
-def asr_wer_report(true_labels: pd.DataFrame, pred_labels: pd.DataFrame) -> pd.DataFrame:
+def asr_report(true_labels: pd.DataFrame, pred_labels: pd.DataFrame) -> pd.DataFrame:
     """
-    Generate ASR WER report based on true and predicted labels.
+    Generate ASR report based on true and predicted labels.
 
     `true_labels` is a CSV following TranscriptionLabel protobuf definition
     from dataframes. While `pred_labels` follows RichTranscriptionLabel
@@ -509,22 +509,9 @@ def asr_wer_report(true_labels: pd.DataFrame, pred_labels: pd.DataFrame) -> pd.D
 
     wers = df.apply(lambda row: wer(row["transcription"], row["pred_transcription"]), axis=1)
 
-    empty_true = df["transcription"] == ""
-    empty_pred = df["pred_transcription"] == ""
-
-    mat = confusion_matrix(empty_true, empty_pred, labels=[False, True])
-
-    total_empty = (mat[1, 0] + mat[1, 1])
-    if total_empty > 0:
-        utterance_fpr = mat[1, 0] / total_empty
-    else:
-        utterance_fpr = 0
-
-    total_non_empty = (mat[0, 0] + mat[0, 1])
-    if total_non_empty > 0:
-        utterance_fnr = mat[0, 1] / total_non_empty
-    else:
-        utterance_fnr = 0
+    (utterance_fpr, total_empty), (utterance_fnr, total_non_empty) = fpr_fnr(
+        df["transcription"] == "", df["pred_transcription"] == "", labels=[False, True]
+    )
 
     # TODO: Find WER over the corpus (like this → https://kaldi-asr.org/doc/compute-wer_8cc.html)
     report = pd.DataFrame({
