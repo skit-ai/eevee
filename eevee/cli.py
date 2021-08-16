@@ -22,6 +22,7 @@ import pandas as pd
 from docopt import docopt
 
 from eevee import __version__
+
 from eevee.metrics import multi_class_classification_report
 from eevee.metrics.asr import asr_report
 
