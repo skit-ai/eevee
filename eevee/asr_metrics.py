@@ -9,12 +9,13 @@ from eevee import metrics
 def get_metrics(
     ref: str,
     hyp: Union[str, List],
-    lang: str,
+    lang: str = None,
     remove_words: Union[str, List] = None,
     lexicon: Union[str, Dict] = None,
     lm=None,
     alignment=None,
     phone_post=None,
+    lemmatize=False,
 ) -> Dict:
     """
     Takes ground truth and predictions (can be string or list) and returns related ASR metrics. Optional arguments provide more metrics
@@ -26,6 +27,7 @@ def get_metrics(
     :param lm: Language model in ARPA format. Check examples for loading example
     :param alignment: Kaldi forced alignment vector
     :param phone_post: Kaldi NNET3/Chain phone posteriors.
+    :param lemmatize: Whether to perform lemmatization on text
     :return: JSON string containing all ASR metrics.
 
     """
@@ -47,10 +49,10 @@ def get_metrics(
                 pass
 
     if type(hyp) == str:
-        results = _parse_string(ref, hyp, lang, remove_words, lexicon, lm)
+        results = _parse_string(ref, hyp, lang, remove_words, lexicon, lm, lemmatize)
 
     elif type(hyp) == list:
-        results = _parse_alters(ref, hyp, lang, remove_words, lexicon, lm)
+        results = _parse_alters(ref, hyp, lang, remove_words, lexicon, lm, lemmatize)
 
     try:
         if alignment and phone_post:
@@ -68,6 +70,7 @@ def _parse_string(
     remove_words: List = None,
     lexicon: Dict = None,
     lm=None,
+    lemmatize=False,
 ) -> Dict:
     """
     Parses a reference and hpothesis string and return ASR metrics
@@ -77,21 +80,23 @@ def _parse_string(
     :param remove_words: Text file path or a list of strings to be removed from the ground truth and hypothesis. Can be used to discount stop words etc
     :param lexicon: Kaldi lexicon file  path or a {word:lexicon} dict. Will give prediction phone error rate (not the AM per)
     :param lm: Language model in ARPA format. Check examples for loading example
+    :param lemmatize: Whether to perform lemmatization on text
     :return: Dictionary containing all ASR metrics.
 
     """
 
-    results = metrics.compute_asr_measures(ref, hyp, lexicon=lexicon, lm=lm)
+    results = {}
+    results["base"] = metrics.compute_asr_measures(ref, hyp, lexicon=lexicon, lm=lm)
 
     if lm:
-        results["ref_ppl"] = metrics._get_ppl(ref, lm)
+        results["base"]["ref_ppl"] = metrics._get_ppl(ref, lm)
 
-    if remove_words:
-        results_stopwords = metrics.compute_asr_measures(
+    if remove_words and lemmatize:
+        results["stopwords"] = metrics.compute_asr_measures(
             ref, hyp, words_to_filter=remove_words, lang=lang, lexicon=lexicon
         )
 
-        results_lemma = metrics.compute_asr_measures(
+        results["lemmatized"] = metrics.compute_asr_measures(
             ref,
             hyp.replace("<UNK>", " "),
             words_to_filter=remove_words,
@@ -100,18 +105,12 @@ def _parse_string(
             lexicon=lexicon,
         )
 
-        return {
-            "base": results,
-            "stopwords": results_stopwords,
-            "lemmatized": results_lemma,
-        }
-
-    else:
-        results_lemma = metrics.compute_asr_measures(
+    elif lemmatize:
+        results["lemmatized"] = metrics.compute_asr_measures(
             ref, hyp.replace("<UNK>", " "), lemmatize=True, lang=lang, lexicon=lexicon
         )
 
-        return {"base": results, "lemmatized": results_lemma}
+    return results
 
 
 def _parse_alters(
@@ -121,6 +120,7 @@ def _parse_alters(
     remove_words: List = None,
     lexicon: Dict = None,
     lm=None,
+    lemmatize=False,
 ) -> Dict:
     """
     Give ASR metrics for a reference string and a list of hypotheses (plural of hypothesis). Can parse kaldi-serve/gasr alternatives
@@ -131,6 +131,7 @@ def _parse_alters(
     :param remove_words: Text file path or a list of strings to be removed from the ground truth and hypothesis. Can be used to discount stop words etc
     :param lexicon: Kaldi lexicon file  path or a {word:lexicon} dict. Will give prediction phone error rate (not the AM per)
     :param lm: Language model in ARPA format. Check examples for loading example
+    :param lemmatize: Whether to perform lemmatization on text
     :return: JSON string containing all ASR metrics.
 
     """
@@ -152,6 +153,7 @@ def _parse_alters(
                         remove_words=remove_words,
                         lexicon=lexicon,
                         lm=lm,
+                        lemmatize=lemmatize,
                     ),
                 }
             )
@@ -168,6 +170,7 @@ def _parse_alters(
                         remove_words=remove_words,
                         lexicon=lexicon,
                         lm=lm,
+                        lemmatize=lemmatize,
                     ),
                 }
             )
@@ -194,7 +197,7 @@ def _get_top_n(alternatives: Union[Dict, List]) -> Dict:
 
     top = {n: metrics.aggregate_metrics(alternatives[:n]) for n in [3, 5, 7, 10]}
 
-    return {"top_3": top[3], "top_5": top[5], "top_7": top[7], "avg": top[10]}
+    return {"first_3": top[3], "first_5": top[5], "first_7": top[7], "avg": top[10]}
 
 
 def _get_delta(alternatives: Union[Dict, List], lang: str) -> Dict:

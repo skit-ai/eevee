@@ -3,13 +3,10 @@
 ![](https://img.shields.io/github/v/tag/Vernacular-ai/eevee.svg?style=flat-square) ![GitHub Workflow Status](https://img.shields.io/github/workflow/status/Vernacular-ai/eevee/CI?style=flat-square)
 
 `eevee` is a set of standard evaluation utilities for problems that we work on.
-You can use `eevee` both as a python module or as a CLI tool. General CLI
-pattern is to point to a dataset and ask for a metric. Few metrics, like Speech
-Recognition ones, by default, provide a sliced breakdown report.
-
-`eevee` is supposed to work with files using structures from
-[dataframes](https://github.com/Vernacular-ai/dataframes), which contains
-standard datatype definitions.
+You can use `eevee` both as a python module or as a CLI tool. It works on data
+files with label structures from
+[dataframes](https://github.com/Vernacular-ai/dataframes) that has standard
+datatype definitions. See `./data` directory for example files.
 
 ## Installation
 
@@ -17,7 +14,7 @@ For now, you have to install eevee using Github release URLs. The current
 version can be installed by using the following:
 
 ```bash
-pip install https://github.com/Vernacular-ai/eevee/releases/download/0.5.1/eevee-0.5.1-py3-none-any.whl
+pip install https://github.com/Vernacular-ai/eevee/releases/download/0.5.2/eevee-0.5.2-py3-none-any.whl
 ```
 
 ## Usage
@@ -30,14 +27,19 @@ json for further machine consumption. Here is how you use it for intents:
 eevee intent ./tagged.intent.csv ./predicted.intent.csv
 ```
 
-For entities, we have a similar pattern
+Similarly, for WER report you can do this:
 
 ```bash
-eevee entity ./tagged.entity.csv ./predicted.entity.csv
+eevee asr ./data/tagged.transcriptions.csv ./data/predicted.transcriptions.csv --json
+
+# {
+# "Value":{
+#     "WER":0.4761904762
+#   }
+# }
 ```
 
-There are a few beta features related to ASR metrics. Since the structure is
-still in progress, we have kept a few dependencies from there as extras.
-Recommended way of working with them is to install the package in development
-mode and do `poetry install -E asr`. Then follow the scripts in `./scripts`.
-These will be moved in the master cli as we keep on developing.
+There are a few advanced unexposed metrics related to ASR. Since they are still
+work in progress, we have kept a few dependencies from there as _extras_. If you
+need those, you should install the package in development mode and do `poetry
+install -E asr`. Then follow the scripts in `./scripts`.

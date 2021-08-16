@@ -1,11 +1,15 @@
+import itertools
+import json
 from collections import Counter
-from typing import Any, Callable, Dict, List, Mapping, Tuple, Union
-
-import Levenshtein
-import numpy as np
+from functools import reduce
+from operator import mul
+from typing import Any, Dict, List, Mapping, Tuple, Union
 
 import eevee.transforms as tr
-
+import Levenshtein
+import numpy as np
+import pandas as pd
+from eevee.metrics.utils import fpr_fnr
 
 _default_transform = tr.Compose(
     [
@@ -36,7 +40,7 @@ def aggregate_metrics(
     Aggregate metric dictionaries from multiple alternatives using
     `aggregation_fn`.
 
-    An alternative metric books like the following:
+    An alternative metric looks like the following:
     {
       "base": {"metric-name": <metric-value>},
       "lemmatized": {...},
@@ -425,3 +429,95 @@ def _get_ppl(sent: Union[str, List], lm) -> float:
                 return (1 / lm.p("<UNK>")) ** (1 / len(sent))
             except KeyError:
                 return lm.counts()[0][1]
+
+
+def merge_utterances(utterances):
+    """
+    At times when the user is speaking with gaps, we get more than one results
+    from Google ASR, each with its own list of alternatives.
+
+    To make sure that the rest of the systems work fine, we merge those
+    results using a cross join and re-rank them using the following two attributes:
+    1. Sum of index for each utterance
+    2. Product of confidence values
+
+    NOTE: We are still returning items as if the ASR returned a single utterance.
+          Also the confidence values here will be very low so care must be taken
+          in interpretation.
+    """
+
+    if len(utterances) < 2:
+        return utterances
+
+    merged = []
+
+    def _join_transcripts(transcripts):
+        return " ".join(text.strip() for text in transcripts)
+
+    indexed_results = [enumerate(utt) for utt in utterances]
+
+    for tup in itertools.product(*indexed_results):
+        if tup:
+            index_sum = sum(idx for idx, _ in tup)
+            # NOTE: We lose fields other than transcript and confidence here.
+            alternative = {
+                "transcript": _join_transcripts([alt["transcript"] for _, alt in tup]),
+                "confidence": reduce(mul, [alt["confidence"] or 0 for _, alt in tup])
+            }
+            merged.append((index_sum, alternative))
+
+    merged = sorted(merged, key=lambda it: (it[0], -it[1]["confidence"] or 0))[:10]
+    return [[alt for _, alt in merged]]
+
+
+def get_first_transcript(utterances) -> str:
+    """
+    Return first transcript from the first utterance. Return '' if utterances
+    are empty.
+    """
+
+    try:
+        return utterances[0][0]["transcript"]
+    except (KeyError, IndexError):
+        return ""
+
+
+def asr_report(true_labels: pd.DataFrame, pred_labels: pd.DataFrame) -> pd.DataFrame:
+    """
+    Generate ASR report based on true and predicted labels.
+
+    `true_labels` is a CSV following TranscriptionLabel protobuf definition
+    from dataframes. While `pred_labels` follows RichTranscriptionLabel
+    protobuf definition.
+
+    The report covers the following metrics:
+    - WER: Mean WER over all the utterances.
+    - Utterance FPR: Ratio of utterances where truth is empty but prediction is non-empty.
+    - Utterance FNR: Ratio of utterances where predictions are empty, while the truth is non-empty.
+    """
+
+    # TODO: Add min-k variant
+    df = pd.merge(true_labels, pred_labels, on="id", how="inner")
+
+    # Since empty items in true transcription is read as NaN, we have to
+    # replace them
+    df["transcription"] = df["transcription"].fillna("")
+
+    # TODO: Do validation on type of input
+    df["utterances"] = df["utterances"].apply(lambda it: merge_utterances(json.loads(it)))
+    df["pred_transcription"] = df["utterances"].apply(get_first_transcript)
+
+    wers = df.apply(lambda row: wer(row["transcription"], row["pred_transcription"]), axis=1)
+
+    (utterance_fpr, total_empty), (utterance_fnr, total_non_empty) = fpr_fnr(
+        df["transcription"] == "", df["pred_transcription"] == "", labels=[False, True]
+    )
+
+    # TODO: Find WER over the corpus (like this → https://kaldi-asr.org/doc/compute-wer_8cc.html)
+    report = pd.DataFrame({
+        "Metric": ["WER", "Utterance FPR", "Utterance FNR"],
+        "Value": [np.mean(wers), utterance_fpr, utterance_fnr],
+        "Support": [len(df), total_empty, total_non_empty]
+    })
+    report.set_index("Metric", inplace=True)
+    return report
