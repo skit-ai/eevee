@@ -273,7 +273,11 @@ def _preprocess(
         truth = truth_transform(truth)
     else:
         truth = [""]
-    hypothesis = hypothesis_transform(hypothesis)
+
+    if hypothesis.strip() not in [" ", ""]:
+        hypothesis = hypothesis_transform(hypothesis)
+    else:
+        hypothesis = [""]
 
     # raise an error if the ground truth is empty
     # doesn't raise an error anymore due to the check in line 271. This is because we want to know the errors in silent segments
@@ -462,7 +466,7 @@ def merge_utterances(utterances):
             # NOTE: We lose fields other than transcript and confidence here.
             alternative = {
                 "transcript": _join_transcripts([alt["transcript"] for _, alt in tup]),
-                "confidence": reduce(mul, [alt["confidence"] or 0 for _, alt in tup])
+                "confidence": reduce(mul, [alt["confidence"] or 0 for _, alt in tup]),
             }
             merged.append((index_sum, alternative))
 
@@ -504,20 +508,26 @@ def asr_report(true_labels: pd.DataFrame, pred_labels: pd.DataFrame) -> pd.DataF
     df["transcription"] = df["transcription"].fillna("")
 
     # TODO: Do validation on type of input
-    df["utterances"] = df["utterances"].apply(lambda it: merge_utterances(json.loads(it)))
+    df["utterances"] = df["utterances"].apply(
+        lambda it: merge_utterances(json.loads(it))
+    )
     df["pred_transcription"] = df["utterances"].apply(get_first_transcript)
 
-    wers = df.apply(lambda row: wer(row["transcription"], row["pred_transcription"]), axis=1)
+    wers = df.apply(
+        lambda row: wer(row["transcription"], row["pred_transcription"]), axis=1
+    )
 
     (utterance_fpr, total_empty), (utterance_fnr, total_non_empty) = fpr_fnr(
         df["transcription"] == "", df["pred_transcription"] == "", labels=[False, True]
     )
 
     # TODO: Find WER over the corpus (like this → https://kaldi-asr.org/doc/compute-wer_8cc.html)
-    report = pd.DataFrame({
-        "Metric": ["WER", "Utterance FPR", "Utterance FNR"],
-        "Value": [np.mean(wers), utterance_fpr, utterance_fnr],
-        "Support": [len(df), total_empty, total_non_empty]
-    })
+    report = pd.DataFrame(
+        {
+            "Metric": ["WER", "Utterance FPR", "Utterance FNR"],
+            "Value": [np.mean(wers), utterance_fpr, utterance_fnr],
+            "Support": [len(df), total_empty, total_non_empty],
+        }
+    )
     report.set_index("Metric", inplace=True)
     return report
