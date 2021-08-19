@@ -69,8 +69,8 @@ def aggregate_metrics(
 
 
 def wer(
-    truth: Union[str, List[str]],
-    hypothesis: Union[str, List[str]],
+    truth: str,
+    hypothesis: str,
     truth_transform: Union[tr.Compose, tr.AbstractTransform] = _default_transform,
     hypothesis_transform: Union[tr.Compose, tr.AbstractTransform] = _default_transform,
     **kwargs
@@ -88,8 +88,8 @@ def wer(
 
 
 def mer(
-    truth: Union[str, List[str]],
-    hypothesis: Union[str, List[str]],
+    truth: str,
+    hypothesis: str,
     truth_transform: Union[tr.Compose, tr.AbstractTransform] = _default_transform,
     hypothesis_transform: Union[tr.Compose, tr.AbstractTransform] = _default_transform,
     **kwargs
@@ -107,8 +107,8 @@ def mer(
 
 
 def wip(
-    truth: Union[str, List[str]],
-    hypothesis: Union[str, List[str]],
+    truth: str,
+    hypothesis: str,
     truth_transform: Union[tr.Compose, tr.AbstractTransform] = _default_transform,
     hypothesis_transform: Union[tr.Compose, tr.AbstractTransform] = _default_transform,
     **kwargs
@@ -126,8 +126,8 @@ def wip(
 
 
 def wil(
-    truth: Union[str, List[str]],
-    hypothesis: Union[str, List[str]],
+    truth: str,
+    hypothesis: str,
     truth_transform: Union[tr.Compose, tr.AbstractTransform] = _default_transform,
     hypothesis_transform: Union[tr.Compose, tr.AbstractTransform] = _default_transform,
     **kwargs
@@ -145,8 +145,8 @@ def wil(
 
 
 def compute_asr_measures(
-    truth: Union[str, List[str]],
-    hypothesis: Union[str, List[str]],
+    truth: str,
+    hypothesis: str,
     truth_transform: Union[tr.Compose, tr.AbstractTransform] = _default_transform,
     hypothesis_transform: Union[tr.Compose, tr.AbstractTransform] = _default_transform,
     **kwargs
@@ -254,8 +254,8 @@ def compute_asr_measures(
 
 
 def _preprocess(
-    truth: Union[str, List[str]],
-    hypothesis: Union[str, List[str]],
+    truth: str,
+    hypothesis: str,
     truth_transform: Union[tr.Compose, tr.AbstractTransform],
     hypothesis_transform: Union[tr.Compose, tr.AbstractTransform],
 ) -> Tuple[str, str]:
