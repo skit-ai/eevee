@@ -410,9 +410,9 @@ def _get_am_errors(align: List, phone_post: List) -> float:
     return fer
 
 
-def _get_ppl(sent: Union[str, List], lm) -> float:
+def _get_ppl(sent: str, lm) -> float:
     """
-    Calculates perplexity of sentences based on n-gram lm
+    Calculates perplexity of a sentence based on n-gram lm
     :param sent: Sentence for which perplexity needs to be calculated
     :param lm: N-Gram LM
     :return: Perplexity of sentence
