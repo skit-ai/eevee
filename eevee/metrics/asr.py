@@ -76,8 +76,8 @@ def wer(
     **kwargs
 ) -> float:
     """
-    Calculate word error rate (WER) between a set of ground-truth sentences and
-    a set of hypothesis sentences.
+    Calculate word error rate (WER) between a ground-truth sentence and
+    a hypothesis sentence.
     See `compute_asr_measures` for details on the arguments.
     :return: WER as a floating point number
     """
@@ -95,8 +95,8 @@ def mer(
     **kwargs
 ) -> float:
     """
-    Calculate match error rate (MER) between a set of ground-truth sentences and
-    a set of hypothesis sentences.
+    Calculate match error rate (MER) between a ground-truth sentence and
+    a hypothesis sentence.
     See `compute_asr_measures` for details on the arguments.
     :return: MER as a floating point number
     """
@@ -114,8 +114,8 @@ def wip(
     **kwargs
 ) -> float:
     """
-    Calculate Word Information Preserved (WIP) between a set of ground-truth
-    sentences and a set of hypothesis sentences.
+    Calculate Word Information Preserved (WIP) between a ground-truth
+    sentence and a hypothesis sentence.
     See `compute_asr_measures` for details on the arguments.
     :return: WIP as a floating point number
     """
@@ -133,8 +133,7 @@ def wil(
     **kwargs
 ) -> float:
     """
-    Calculate Word Information Lost (WIL) between a set of ground-truth sentences
-    and a set of hypothesis sentences.
+    Calculate Word Information Lost (WIL) between a ground-truth sentence and a hypothesis sentence.
     See `compute_asr_measures` for details on the arguments.
     :return: WIL as a floating point number
     """
@@ -152,18 +151,17 @@ def compute_asr_measures(
     **kwargs
 ) -> Mapping[str, float]:
     """
-    Calculate error measures between a set of ground-truth sentences and a set of
-    hypothesis sentences.
-    The set of sentences can be given as a string or a list of strings. A string
-    input is assumed to be a single sentence. A list of strings is assumed to be
-    multiple sentences. Each word in a sentence is separated by one or more spaces.
+    Calculate error measures between a ground-truth sentence and a
+    hypothesis sentence.
+    The set of sentences can be given as a string. A string input is assumed to be a single sentence.
+    Each word in a sentence is separated by one or more spaces.
     A sentence is not expected to end with a specific token (such as a `.`). If
     the ASR does delimit sentences it is expected that these tokens are filtered out.
     The optional `transforms` arguments can be used to apply pre-processing to
     respectively the ground truth and hypotheses input. Note that the transform
     should ALWAYS include `SentencesToListOfWords`, as that is the expected input.
-    :param truth: the ground-truth sentence(s) as a string or list of strings
-    :param hypothesis: the hypothesis sentence(s) as a string or list of strings
+    :param truth: the ground-truth sentence as a string
+    :param hypothesis: the hypothesis sentence as a string
     :param truth_transform: the transformation to apply on the truths input
     :param hypothesis_transform: the transformation to apply on the hypothesis input
     :return: a dict with WER, MER, WIP and WIL measures as floating point numbers
@@ -261,8 +259,8 @@ def _preprocess(
 ) -> Tuple[str, str]:
     """
     Pre-process the truth and hypothesis into a form that Levenshtein can handle.
-    :param truth: the ground-truth sentence(s) as a string or list of strings
-    :param hypothesis: the hypothesis sentence(s) as a string or list of strings
+    :param truth: the ground-truth sentence as a string
+    :param hypothesis: the hypothesis sentence as a string
     :param truth_transform: the transformation to apply on the truths input
     :param hypothesis_transform: the transformation to apply on the hypothesis input
     :return: the preprocessed truth and hypothesis
@@ -417,8 +415,7 @@ def _get_ppl(sent: str, lm) -> float:
     :param lm: N-Gram LM
     :return: Perplexity of sentence
     """
-    if type(sent) == str:
-        sent = sent.split()
+    sent = sent.split()
 
     sent = [x for x in sent if x in lm.vocabulary()]
     sentence = " ".join(sent)
