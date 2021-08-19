@@ -9,6 +9,7 @@ from eevee.metrics import (
     slot_fpr,
     slot_mismatch_rate,
     slot_retry_rate,
+    wer,
 )
 
 
@@ -137,3 +138,10 @@ def test_intents(y_true, y_pred, macro_f1):
     )
 
     assert report["macro avg"]["f1-score"] == macro_f1
+
+
+@pytest.mark.parametrize(
+    "ref, hyp, result", [("", "", 0), ("a", "b", 1), ("a b", "b", 0.5)]
+)
+def test_wer(ref, hyp, result):
+    assert wer(ref, hyp) == result
