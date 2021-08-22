@@ -23,11 +23,17 @@ def entity_report(true_labels: pd.DataFrame, pred_labels: pd.DataFrame) -> pd.Da
     entity_types = sorted(set([ent["type"] for ent in py_.flatten(df["true"].tolist() + df["pred"].tolist())]))
 
     # TODO: Handle compositional entities like datetime
+    report = []
 
-    return pd.DataFrame({
-        "Entity": [],
-        "FPR": [],
-        "FNR": [],
-        "Mismatch Rate": [],
-        "Support": []
-    })
+    for entity_type in entity_types:
+        report.append({
+            "Entity": entity_type,
+            "FPR": "NA",
+            "FNR": "NA",
+            "Mismatch Rate": "NA",
+            "Support": "NA",
+            "Positives": "NA",
+            "Negatives": "NA"
+        })
+
+    return pd.DataFrame(report)
