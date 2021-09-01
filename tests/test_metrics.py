@@ -7,7 +7,6 @@ from eevee.metrics import (
     slot_capture_rate,
     slot_fnr,
     slot_fpr,
-    slot_mismatch_rate,
     slot_retry_rate,
 )
 
@@ -32,17 +31,6 @@ def test_slot_scr(slots_predicted, expected_slot, scr):
 )
 def test_slot_srr(slot_turn_counts, agg_fn, srr):
     assert slot_retry_rate(slot_turn_counts, agg_fn) == srr
-
-
-@pytest.mark.parametrize(
-    "y_true, y_pred, smr",
-    [
-        ([None, None, None, None], [None, None, None, None], 0),
-        ([1, 1, 1, 1, None], [1, 1, 1, 2, None], 0.25),
-    ],
-)
-def test_slot_smr(y_true, y_pred, smr):
-    assert slot_mismatch_rate(y_true, y_pred) == smr
 
 
 @pytest.mark.parametrize(
