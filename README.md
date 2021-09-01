@@ -1,11 +1,11 @@
 # eevee
 
-![](https://img.shields.io/github/v/tag/Vernacular-ai/eevee.svg?style=flat-square) ![GitHub Workflow Status](https://img.shields.io/github/workflow/status/Vernacular-ai/eevee/CI?style=flat-square)
+![](https://img.shields.io/github/v/tag/skit-ai/eevee.svg?style=flat-square) ![GitHub Workflow Status](https://img.shields.io/github/workflow/status/skit-ai/eevee/CI?style=flat-square)
 
 `eevee` is a set of standard evaluation utilities for problems that we work on.
 You can use `eevee` both as a python module or as a CLI tool. It works on data
 files with label structures from
-[dataframes](https://github.com/Vernacular-ai/dataframes) that has standard
+[dataframes](https://github.com/skit-ai/dataframes) that has standard
 datatype definitions. See `./data` directory for example files.
 
 ## Installation
@@ -14,7 +14,7 @@ For now, you have to install eevee using Github release URLs. The current
 version can be installed by using the following:
 
 ```bash
-pip install https://github.com/Vernacular-ai/eevee/releases/download/0.5.2/eevee-0.5.2-py3-none-any.whl
+pip install https://github.com/skit-ai/eevee/releases/download/0.5.2/eevee-0.5.2-py3-none-any.whl
 ```
 
 ## Usage
