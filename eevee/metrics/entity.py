@@ -112,12 +112,12 @@ def entity_report(true_labels: pd.DataFrame, pred_labels: pd.DataFrame) -> pd.Da
 
             report.append({
                 "Entity": entity_type,
-                "FPR": f"{ent_fpr:.2f}",
-                "FNR": f"{ent_fnr:.2f}",
-                "Mismatch Rate": f"{ent_mmr:.2f}",
+                "FPR": ent_fpr,
+                "FNR": ent_fnr,
+                "Mismatch Rate": ent_mmr,
                 "Support": len(y_true),
-                "Positives": f"{ent_pos:.2f}",
-                "Negatives": f"{ent_neg:.2f}"
+                "Positives": ent_pos,
+                "Negatives": ent_neg
             })
 
     return pd.DataFrame(report)
