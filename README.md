@@ -30,13 +30,13 @@ eevee intent ./tagged.intent.csv ./predicted.intent.csv
 Similarly, for WER report you can do this:
 
 ```bash
-eevee asr ./data/tagged.transcriptions.csv ./data/predicted.transcriptions.csv --json
+eevee asr ./data/tagged.transcriptions.csv ./data/predicted.transcriptions.csv
 
-# {
-# "Value":{
-#     "WER":0.4761904762
-#   }
-# }
+#                Value     Support
+# Metric
+# WER            0.571429        6
+# Utterance FPR  0.500000        2
+# Utterance FNR  0.250000        4
 ```
 
 There are a few advanced unexposed metrics related to ASR. Since they are still
