@@ -69,15 +69,15 @@ def aggregate_metrics(
 
 
 def wer(
-    truth: Union[str, List[str]],
-    hypothesis: Union[str, List[str]],
+    truth: str,
+    hypothesis: str,
     truth_transform: Union[tr.Compose, tr.AbstractTransform] = _default_transform,
     hypothesis_transform: Union[tr.Compose, tr.AbstractTransform] = _default_transform,
     **kwargs
 ) -> float:
     """
-    Calculate word error rate (WER) between a set of ground-truth sentences and
-    a set of hypothesis sentences.
+    Calculate word error rate (WER) between a ground-truth sentence and
+    a hypothesis sentence.
     See `compute_asr_measures` for details on the arguments.
     :return: WER as a floating point number
     """
@@ -88,15 +88,15 @@ def wer(
 
 
 def mer(
-    truth: Union[str, List[str]],
-    hypothesis: Union[str, List[str]],
+    truth: str,
+    hypothesis: str,
     truth_transform: Union[tr.Compose, tr.AbstractTransform] = _default_transform,
     hypothesis_transform: Union[tr.Compose, tr.AbstractTransform] = _default_transform,
     **kwargs
 ) -> float:
     """
-    Calculate match error rate (MER) between a set of ground-truth sentences and
-    a set of hypothesis sentences.
+    Calculate match error rate (MER) between a ground-truth sentence and
+    a hypothesis sentence.
     See `compute_asr_measures` for details on the arguments.
     :return: MER as a floating point number
     """
@@ -107,15 +107,15 @@ def mer(
 
 
 def wip(
-    truth: Union[str, List[str]],
-    hypothesis: Union[str, List[str]],
+    truth: str,
+    hypothesis: str,
     truth_transform: Union[tr.Compose, tr.AbstractTransform] = _default_transform,
     hypothesis_transform: Union[tr.Compose, tr.AbstractTransform] = _default_transform,
     **kwargs
 ) -> float:
     """
-    Calculate Word Information Preserved (WIP) between a set of ground-truth
-    sentences and a set of hypothesis sentences.
+    Calculate Word Information Preserved (WIP) between a ground-truth
+    sentence and a hypothesis sentence.
     See `compute_asr_measures` for details on the arguments.
     :return: WIP as a floating point number
     """
@@ -126,15 +126,14 @@ def wip(
 
 
 def wil(
-    truth: Union[str, List[str]],
-    hypothesis: Union[str, List[str]],
+    truth: str,
+    hypothesis: str,
     truth_transform: Union[tr.Compose, tr.AbstractTransform] = _default_transform,
     hypothesis_transform: Union[tr.Compose, tr.AbstractTransform] = _default_transform,
     **kwargs
 ) -> float:
     """
-    Calculate Word Information Lost (WIL) between a set of ground-truth sentences
-    and a set of hypothesis sentences.
+    Calculate Word Information Lost (WIL) between a ground-truth sentence and a hypothesis sentence.
     See `compute_asr_measures` for details on the arguments.
     :return: WIL as a floating point number
     """
@@ -145,25 +144,24 @@ def wil(
 
 
 def compute_asr_measures(
-    truth: Union[str, List[str]],
-    hypothesis: Union[str, List[str]],
+    truth: str,
+    hypothesis: str,
     truth_transform: Union[tr.Compose, tr.AbstractTransform] = _default_transform,
     hypothesis_transform: Union[tr.Compose, tr.AbstractTransform] = _default_transform,
     **kwargs
 ) -> Mapping[str, float]:
     """
-    Calculate error measures between a set of ground-truth sentences and a set of
-    hypothesis sentences.
-    The set of sentences can be given as a string or a list of strings. A string
-    input is assumed to be a single sentence. A list of strings is assumed to be
-    multiple sentences. Each word in a sentence is separated by one or more spaces.
+    Calculate error measures between a ground-truth sentence and a
+    hypothesis sentence.
+    The set of sentences can be given as a string. A string input is assumed to be a single sentence.
+    Each word in a sentence is separated by one or more spaces.
     A sentence is not expected to end with a specific token (such as a `.`). If
     the ASR does delimit sentences it is expected that these tokens are filtered out.
     The optional `transforms` arguments can be used to apply pre-processing to
     respectively the ground truth and hypotheses input. Note that the transform
     should ALWAYS include `SentencesToListOfWords`, as that is the expected input.
-    :param truth: the ground-truth sentence(s) as a string or list of strings
-    :param hypothesis: the hypothesis sentence(s) as a string or list of strings
+    :param truth: the ground-truth sentence as a string
+    :param hypothesis: the hypothesis sentence as a string
     :param truth_transform: the transformation to apply on the truths input
     :param hypothesis_transform: the transformation to apply on the hypothesis input
     :return: a dict with WER, MER, WIP and WIL measures as floating point numbers
@@ -254,15 +252,15 @@ def compute_asr_measures(
 
 
 def _preprocess(
-    truth: Union[str, List[str]],
-    hypothesis: Union[str, List[str]],
+    truth: str,
+    hypothesis: str,
     truth_transform: Union[tr.Compose, tr.AbstractTransform],
     hypothesis_transform: Union[tr.Compose, tr.AbstractTransform],
 ) -> Tuple[str, str]:
     """
     Pre-process the truth and hypothesis into a form that Levenshtein can handle.
-    :param truth: the ground-truth sentence(s) as a string or list of strings
-    :param hypothesis: the hypothesis sentence(s) as a string or list of strings
+    :param truth: the ground-truth sentence as a string
+    :param hypothesis: the hypothesis sentence as a string
     :param truth_transform: the transformation to apply on the truths input
     :param hypothesis_transform: the transformation to apply on the hypothesis input
     :return: the preprocessed truth and hypothesis
@@ -273,7 +271,11 @@ def _preprocess(
         truth = truth_transform(truth)
     else:
         truth = [""]
-    hypothesis = hypothesis_transform(hypothesis)
+
+    if hypothesis.strip() not in [" ", ""]:
+        hypothesis = hypothesis_transform(hypothesis)
+    else:
+        hypothesis = [""]
 
     # raise an error if the ground truth is empty
     # doesn't raise an error anymore due to the check in line 271. This is because we want to know the errors in silent segments
@@ -406,15 +408,14 @@ def _get_am_errors(align: List, phone_post: List) -> float:
     return fer
 
 
-def _get_ppl(sent: Union[str, List], lm) -> float:
+def _get_ppl(sent: str, lm) -> float:
     """
-    Calculates perplexity of sentences based on n-gram lm
+    Calculates perplexity of a sentence based on n-gram lm
     :param sent: Sentence for which perplexity needs to be calculated
     :param lm: N-Gram LM
     :return: Perplexity of sentence
     """
-    if type(sent) == str:
-        sent = sent.split()
+    sent = sent.split()
 
     sent = [x for x in sent if x in lm.vocabulary()]
     sentence = " ".join(sent)
@@ -462,7 +463,7 @@ def merge_utterances(utterances):
             # NOTE: We lose fields other than transcript and confidence here.
             alternative = {
                 "transcript": _join_transcripts([alt["transcript"] for _, alt in tup]),
-                "confidence": reduce(mul, [alt["confidence"] or 0 for _, alt in tup])
+                "confidence": reduce(mul, [alt["confidence"] or 0 for _, alt in tup]),
             }
             merged.append((index_sum, alternative))
 
@@ -504,20 +505,26 @@ def asr_report(true_labels: pd.DataFrame, pred_labels: pd.DataFrame) -> pd.DataF
     df["transcription"] = df["transcription"].fillna("")
 
     # TODO: Do validation on type of input
-    df["utterances"] = df["utterances"].apply(lambda it: merge_utterances(json.loads(it)))
+    df["utterances"] = df["utterances"].apply(
+        lambda it: merge_utterances(json.loads(it))
+    )
     df["pred_transcription"] = df["utterances"].apply(get_first_transcript)
 
-    wers = df.apply(lambda row: wer(row["transcription"], row["pred_transcription"]), axis=1)
+    wers = df.apply(
+        lambda row: wer(row["transcription"], row["pred_transcription"]), axis=1
+    )
 
     (utterance_fpr, total_empty), (utterance_fnr, total_non_empty) = fpr_fnr(
         df["transcription"] == "", df["pred_transcription"] == "", labels=[False, True]
     )
 
     # TODO: Find WER over the corpus (like this → https://kaldi-asr.org/doc/compute-wer_8cc.html)
-    report = pd.DataFrame({
-        "Metric": ["WER", "Utterance FPR", "Utterance FNR"],
-        "Value": [np.mean(wers), utterance_fpr, utterance_fnr],
-        "Support": [len(df), total_empty, total_non_empty]
-    })
+    report = pd.DataFrame(
+        {
+            "Metric": ["WER", "Utterance FPR", "Utterance FNR"],
+            "Value": [np.mean(wers), utterance_fpr, utterance_fnr],
+            "Support": [len(df), total_empty, total_non_empty],
+        }
+    )
     report.set_index("Metric", inplace=True)
     return report
