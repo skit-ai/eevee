@@ -133,7 +133,7 @@ def slot_positives(y_true: List[SlotLabel], y_pred: List[SlotLabel]) -> float:
 
     tn, fp, fn, tp = mat.ravel()
 
-    return fp + tp
+    return tp + fn
 
 
 def slot_negatives(y_true: List[SlotLabel], y_pred: List[SlotLabel]) -> float:
@@ -147,4 +147,4 @@ def slot_negatives(y_true: List[SlotLabel], y_pred: List[SlotLabel]) -> float:
 
     tn, fp, fn, tp = mat.ravel()
 
-    return fn + tn
+    return tn + fp
