@@ -10,7 +10,8 @@ nav_order: 1
 # Eevee
 ![](https://img.shields.io/github/v/tag/skit-ai/eevee.svg?style=flat-square) ![GitHub Workflow Status](https://img.shields.io/github/workflow/status/skit-ai/eevee/CI?style=flat-square)
 
-`eevee` is a set of standard evaluation utilities for problems that we work on.
+`eevee` is a set of standard evaluation utilities for problems that we work on
+at [Skit](https://skit.ai).
 
 You can use `eevee` both as a python module or as a CLI tool. It works on data
 files with label structures from
