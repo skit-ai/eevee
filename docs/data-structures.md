@@ -12,14 +12,14 @@ Since label dataframes have `id` for referring back to the data, we just focus
 on labels in this tool. These labels can be true labels of various kind or
 coming from predictions of different models.
 
-This page documents a few notes about the label representation. Specific details
-are in the pages for different kinds of metrics [here](./metrics).
+This page documents a few general notes about the label representation. Specific
+details are in the pages for different kinds of metrics [here](./metrics).
 
 ## Serialization
 Each row in the label dataframe CSV is of one of the types defined
 [here](https://github.com/skit-ai/dataframes/blob/master/protos/labels.proto).
-In cases where the field type primitive, we serialize items in JSON. In Python,
-this looks like the following:
+In cases where the field type are not primitives, we serialize items in JSON. In
+Python, this looks like the following:
 
 ```python
 import pandas as pd
