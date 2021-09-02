@@ -2,11 +2,12 @@
 # Feel free to add content and custom Front Matter to this file.
 # To modify the layout, see https://jekyllrb.com/docs/themes/#overriding-theme-defaults
 
-layout: home
+layout: default
+title: Home
+nav_order: 1
 ---
 
-# eevee
-
+# Eevee
 ![](https://img.shields.io/github/v/tag/skit-ai/eevee.svg?style=flat-square) ![GitHub Workflow Status](https://img.shields.io/github/workflow/status/skit-ai/eevee/CI?style=flat-square)
 
 `eevee` is a set of standard evaluation utilities for problems that we work on.
