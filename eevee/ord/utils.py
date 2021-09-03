@@ -36,8 +36,7 @@ def parse_datetime_objects(ent: Entity, to_date=False, to_time=False) -> List:
         return dt.hour == dt.minute == 0
 
     # NOTE: We assume there is no mixing of value type within an entity
-    # value_type = ent["values"][0]["type"]
-    value_type = "value"
+    value_type = ent["values"][0]["type"]
     if value_type == "value":
         return [_parser(v["value"]) for v in ent["values"]]
     elif value_type == "interval":

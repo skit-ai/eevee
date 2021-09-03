@@ -7,11 +7,13 @@ from eevee.metrics.slot_filling import (mismatch_rate, slot_fnr,
                                         )
 import json
 
+import numpy as np
 import pandas as pd
 from pydash import py_
 
 import eevee.ord.entity.datetime as ord_datetime
 import eevee.ord.entity.people as ord_people
+import eevee.ord.entity.number as ord_number
 
 EQ_TYPES = {
     "time": ["datetime", "time"],
@@ -19,18 +21,40 @@ EQ_TYPES = {
     "people": ["people", "number"],
 }
 
-EQ_LIST_FNS = {
-    "date": ord_datetime.date_eq_lists,
-    "time": ord_datetime.time_eq_lists,
-    "people": ord_people.eq_lists,
-}
+# NOTE: not supporting multiple value comparisons presently.
+# EQ_LIST_FNS = {
+#     "date": ord_datetime.date_eq_lists,
+#     "time": ord_datetime.time_eq_lists,
+#     "people": ord_people.eq_lists,
+# }
 
 
 ENTITY_EQ_FNS = {
     "date": ord_datetime.date_eq,
     "time": ord_datetime.time_eq,
-    "people": ord_people.eq
+    "people": ord_people.eq,
+    "number": ord_number.eq
 }
+
+
+ENTITY_EQ_ALIAS = {
+    "date": "datetime",
+    "time": "datetime",
+    "datetime": "datetime",
+    "number": "people",
+    "people": "people",
+}
+
+
+def are_these_types_equal(true_ent_type, pred_ent_type):
+
+    if (true_ent_type in ENTITY_EQ_ALIAS and 
+        pred_ent_type in ENTITY_EQ_ALIAS and
+        (ENTITY_EQ_ALIAS[true_ent_type] == ENTITY_EQ_ALIAS[pred_ent_type])
+    ):
+        return True
+    return False
+
 
 
 def entity_report(true_labels: pd.DataFrame, pred_labels: pd.DataFrame) -> pd.DataFrame:
@@ -41,18 +65,16 @@ def entity_report(true_labels: pd.DataFrame, pred_labels: pd.DataFrame) -> pd.Da
     """
 
     df = pd.merge(true_labels, pred_labels, on="id", how="inner")
-    df["true"] = df["entities_x"].apply(lambda it: json.loads(it))
-    df["pred"] = df["entities_y"].apply(lambda it: json.loads(it))
+    df.dropna(how="all", subset=["entities_x", "entities_y"], inplace=True)
+    df["true"] = df["entities_x"].apply(lambda it: json.loads(it) if isinstance(it, str) else None)
+    df["pred"] = df["entities_y"].apply(lambda it: json.loads(it) if isinstance(it, str) else None)
 
     # assuming there will be only one entity type and value 
-    df["true_ent_type"] = df["true"].apply(lambda it: it[0].get("type"))
-    df["pred_ent_type"] = df["pred"].apply(lambda it: it[0].get("type"))
-
-    df["true_ent_value"] = df["true"].apply(lambda it: it[0]["values"][0].get("value"))
-    df["pred_ent_value"] = df["pred"].apply(lambda it: it[0]["values"][0].get("value"))
+    df["true_ent_type"] = df["true"].apply(lambda it: it[0].get("type") if it else None)
+    df["pred_ent_type"] = df["pred"].apply(lambda it: it[0].get("type") if it else None)
 
     # All the unique entity types in the dataset
-    entity_types = sorted(set([ent["type"] for ent in py_.flatten(df["true"].tolist() + df["pred"].tolist())]))
+    entity_types = sorted(set([ent["type"] for ent in py_.flatten(df["true"].dropna().tolist() + df["pred"].dropna().tolist())]))
 
     # TODO: Handle compositional entities like datetime
     report = []
@@ -73,11 +95,17 @@ def entity_report(true_labels: pd.DataFrame, pred_labels: pd.DataFrame) -> pd.Da
 
             for _, row in entity_type_df.iterrows():
 
-                true_ent = row["true"][0]
-                pred_ent = row["pred"][0]
+                if row["true"] is None:
+                    true_ent = None
+                else:
+                    true_ent = row["true"][0]
 
-                if row["true_ent_type"] == entity_type and row["pred_ent_type"] == entity_type:
+                if row["pred"] is None:
+                    pred_ent = None
+                else:
+                    pred_ent = row["pred"][0]
 
+                if are_these_types_equal(row["true_ent_type"], row["pred_ent_type"]):
                     is_this_entity_type_value_equal = eq_fn_for_this_entity(true_ent, pred_ent)
                     if is_this_entity_type_value_equal:
                         y_true.append(True)
@@ -93,15 +121,8 @@ def entity_report(true_labels: pd.DataFrame, pred_labels: pd.DataFrame) -> pd.Da
                     y_true.append(None)
                     y_pred.append(True)
 
-                # else:
-                #     # TODO: don't know how to handle. types matching, but values not matching.
-                #     # that is mismatch rate?
-                #     pass
-                #     # y_true.append(None)
-                #     # y_pred.append(None)
-
-                y_true_mmr.append(row["true"][0])
-                y_pred_mmr.append(row["pred"][0])
+                y_true_mmr.append(true_ent)
+                y_pred_mmr.append(pred_ent)
 
             ent_fpr = slot_fpr(y_true, y_pred)
             ent_fnr = slot_fnr(y_true, y_pred)

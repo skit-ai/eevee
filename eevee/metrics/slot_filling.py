@@ -51,11 +51,23 @@ def mismatch_rate(y_true: List[SlotLabel], y_pred: List[SlotLabel]) -> float:
 
     for y_true_i, y_pred_i in zip(y_true, y_pred):
 
-        y_true_i_type = y_true_i["type"]
-        y_pred_i_type = y_pred_i["type"]
+        if isinstance(y_true_i, dict):
+            y_true_i_type = y_true_i["type"]
+            y_true_i_value = y_true_i["values"][0]["value"]
+        elif y_true_i is None:
+            y_true_i_type = None
+            y_true_i_value = None
+        else:
+            raise ValueError(f"expected objects to be of type Dict/None, but got {type(y_true_i)}")
 
-        y_true_i_value = y_true_i["values"][0]["value"]
-        y_pred_i_value = y_pred_i["values"][0]["value"]
+        if isinstance(y_pred_i, dict):
+            y_pred_i_type = y_pred_i["type"]
+            y_pred_i_value = y_pred_i["values"][0]["value"]
+        elif y_pred_i is None:
+            y_pred_i_type = None
+            y_pred_i_value = None
+        else:
+            raise ValueError(f"expected objects to be of type Dict/None, but got {type(y_true_i)}")
 
         if y_true_i_type == y_pred_i_type and y_true_i is not None:
             if y_true_i_value == y_pred_i_value:
