@@ -41,11 +41,15 @@ below:
 
 ```shell
  eevee entity ./true-labels.csv ./pred-labels.csv
-     Entity FPR FNR Mismatch Rate Support Positives Negatives
-0      date  NA  NA            NA      NA        NA        NA
-1  datetime  NA  NA            NA      NA        NA        NA
-2    people  NA  NA            NA      NA        NA        NA
-3      time  NA  NA            NA      NA        NA        NA
+```
+
+```
+         FPR FNR Mismatch Rate Support Positives Negatives
+Entity                                                    
+date      NA  NA            NA      NA        NA        NA
+datetime  NA  NA            NA      NA        NA        NA
+people    NA  NA            NA      NA        NA        NA
+time      NA  NA            NA      NA        NA        NA
 ```
 
 ### Python module

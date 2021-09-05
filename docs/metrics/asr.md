@@ -24,7 +24,9 @@ Use the sub-command `asr` like shown below:
 
 ```shell
 eevee asr ./data/tagged.transcriptions.csv ./data/predicted.transcriptions.csv
+```
 
+```
                Value     Support
 Metric
 WER            0.571429        6
