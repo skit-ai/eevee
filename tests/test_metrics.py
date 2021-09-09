@@ -3,7 +3,7 @@ import pandas as pd
 import pytest
 from eevee.metrics import (
     aggregate_metrics,
-    multi_class_classification_report,
+    intent_report,
     slot_capture_rate,
     slot_fnr,
     slot_fpr,
@@ -129,11 +129,9 @@ def test_intents(y_true, y_pred, macro_f1):
     true_labels = pd.DataFrame(y_true)
     pred_labels = pd.DataFrame(y_pred)
 
-    report = multi_class_classification_report(
+    report = intent_report(
         true_labels,
         pred_labels,
-        label_col="intent_x",
-        predicted_col="intent_y",
         output_dict=True,
     )
 

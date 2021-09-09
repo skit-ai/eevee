@@ -23,7 +23,7 @@ import pandas as pd
 from docopt import docopt
 
 from eevee import __version__
-from eevee.metrics import multi_class_classification_report
+from eevee.metrics import intent_report
 from eevee.metrics.asr import asr_report
 from eevee.metrics.entity import entity_report
 
@@ -35,13 +35,12 @@ def main():
         true_labels = pd.read_csv(args["<true-labels>"])
         pred_labels = pd.read_csv(args["<pred-labels>"])
 
+
         if args["--json"]:
-            output = multi_class_classification_report(
-                true_labels, pred_labels, output_dict=True
-            )
+            output = intent_report(true_labels, pred_labels, output_dict=True)
             output = json.dumps(output, indent=2)
         else:
-            output = multi_class_classification_report(true_labels, pred_labels)
+            output = intent_report(true_labels, pred_labels)
 
         print(output)
 
