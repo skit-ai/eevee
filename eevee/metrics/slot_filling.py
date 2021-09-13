@@ -1,7 +1,9 @@
 from typing import List, Optional, Callable
 
 import numpy as np
+import pandas as pd
 from sklearn.metrics import confusion_matrix
+
 from eevee.types import SlotLabel
 
 
@@ -41,35 +43,28 @@ def slot_retry_rate(
 
 def mismatch_rate(y_true: List[SlotLabel], y_pred: List[SlotLabel]) -> float:
     """
-    As per the definition, slot mismatch rate captures
+    As per the definition, mismatch rate captures
     ratio of match on types-but-not-values with
     match on types-but-not-values + match on types-and-values
     """
+
+    # ignore None values for mmr, ignore type mismatch
 
     type_and_value_matched = 0
     type_matched_but_value_didnt = 0
 
     for y_true_i, y_pred_i in zip(y_true, y_pred):
 
-        if isinstance(y_true_i, dict):
-            y_true_i_type = y_true_i["type"]
-            y_true_i_value = y_true_i["values"][0]["value"]
-        elif y_true_i is None:
-            y_true_i_type = None
-            y_true_i_value = None
-        else:
-            raise ValueError(f"expected objects to be of type Dict/None, but got {type(y_true_i)}")
+        if y_true_i is None or y_pred_i is None:
+            continue
 
-        if isinstance(y_pred_i, dict):
-            y_pred_i_type = y_pred_i["type"]
-            y_pred_i_value = y_pred_i["values"][0]["value"]
-        elif y_pred_i is None:
-            y_pred_i_type = None
-            y_pred_i_value = None
-        else:
-            raise ValueError(f"expected objects to be of type Dict/None, but got {type(y_true_i)}")
+        y_true_i_type = y_true_i["type"]
+        y_true_i_value = y_true_i["values"][0]["value"]
 
-        if y_true_i_type == y_pred_i_type and y_true_i is not None:
+        y_pred_i_type = y_pred_i["type"]
+        y_pred_i_value = y_pred_i["values"][0]["value"]
+
+        if y_true_i_type == y_pred_i_type:
             if y_true_i_value == y_pred_i_value:
                 type_and_value_matched += 1
             else:
