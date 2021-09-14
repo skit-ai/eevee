@@ -7,7 +7,6 @@ import json
 from dataclasses import dataclass
 from typing import Dict, Optional
 
-import numpy as np
 import pandas as pd
 from pydash import py_
 
@@ -19,28 +18,18 @@ from eevee.metrics.slot_filling import (mismatch_rate, slot_fnr,
                                         slot_fpr, slot_positives, slot_negatives
                                         )
 
-EQ_TYPES = {
-    "time": ["datetime", "time"],
-    "date": ["datetime", "date"],
-    "people": ["people", "number"],
-}
-
 
 ENTITY_EQ_FNS = {
     "date": ord_datetime.date_eq,
     "time": ord_datetime.time_eq,
-    "datetime": ord_datetime.datetime_eq,
     "people": ord_people.eq,
     "number": ord_number.eq
 }
 
 
 ENTITY_EQ_ALIAS = {
-    "date": "datetime",
-    "time": "datetime",
-    "datetime": "datetime",
-    "number": "people",
-    "people": "people",
+    "number": "number",
+    "people": "number",
 }
 
 
@@ -57,7 +46,7 @@ def are_these_types_equal(true_ent_type, pred_ent_type):
     if (true_ent_type in ENTITY_EQ_ALIAS and 
         pred_ent_type in ENTITY_EQ_ALIAS and
         (ENTITY_EQ_ALIAS[true_ent_type] == ENTITY_EQ_ALIAS[pred_ent_type])
-    ):
+    ) or (true_ent_type == pred_ent_type and true_ent_type is not None):
         return True
     return False
 
@@ -86,7 +75,22 @@ def compare_datetime_special_entities(row) -> EntityComparisonResult:
     pred_ent_type = row["pred_ent_type"]
     true_ent_type = row["true_ent_type"]
 
-    if true_ent_type == "datetime":
+    if true_ent_type == "datetime" and pred_ent_type == "datetime":
+
+        datetime_two_types = ["date", "time"]
+
+        for dtt in datetime_two_types:
+
+            eq_fn_for_this_entity = ENTITY_EQ_FNS[dtt]
+            is_this_entity_type_value_equal = eq_fn_for_this_entity(true_ent, pred_ent)
+
+            if is_this_entity_type_value_equal:
+                tp[dtt] = 1
+            else:
+                mm[dtt] = 1
+
+
+    elif true_ent_type == "datetime":
         
         if pred_ent_type in ["time", "date"]:
 
@@ -172,7 +176,7 @@ def compare_row_level_entities(row) -> Optional[EntityComparisonResult]:
 
 
     # special case handling where one entity is `datetime`
-    if row["true_ent_type"] != row["pred_ent_type"] and "datetime" in [row["true_ent_type"], row["pred_ent_type"]]:
+    if "datetime" in [row["true_ent_type"], row["pred_ent_type"]]:
         ecr = compare_datetime_special_entities(row)
         return ecr
 
@@ -216,6 +220,23 @@ def compare_row_level_entities(row) -> Optional[EntityComparisonResult]:
 
 
 
+def get_entity_df_by_ecr(df: pd.DataFrame, entity_type: str):
+
+    entity_idxs = []
+
+    for idx, row in df.iterrows():
+
+        ecr = row["entity_comp_results"]
+
+        if ecr is None:
+            continue
+
+        if entity_type in ecr.tp or entity_type in ecr.fn or entity_type in ecr.fp or entity_type in ecr.mm:
+            entity_idxs.append(idx)
+
+    return df.loc[df.index[entity_idxs]]
+
+
 def entity_report(true_labels: pd.DataFrame, pred_labels: pd.DataFrame) -> pd.DataFrame:
 
 
@@ -227,6 +248,8 @@ def entity_report(true_labels: pd.DataFrame, pred_labels: pd.DataFrame) -> pd.Da
     # assuming there will be only one entity type and value 
     df["true_ent_type"] = df["true"].apply(lambda it: it[0].get("type") if it else None)
     df["pred_ent_type"] = df["pred"].apply(lambda it: it[0].get("type") if it else None)
+
+    df.reset_index(inplace=True)
 
     # All the unique entity types in the dataset
     entity_types = sorted(set([ent["type"] for ent in py_.flatten(df["true"].dropna().tolist() + df["pred"].dropna().tolist())]))
@@ -240,7 +263,9 @@ def entity_report(true_labels: pd.DataFrame, pred_labels: pd.DataFrame) -> pd.Da
 
         if entity_type in ENTITY_EQ_FNS:
 
-            entity_type_df = df[(df["true_ent_type"] == entity_type) | (df["pred_ent_type"] == entity_type)]
+            # entity type df needs to consider `entity_type` in tp, fp, fn, mm in "entity_comp_results"
+            entity_type_df = get_entity_df_by_ecr(df, entity_type)
+            entity_support = 0
 
             y_true = []
             y_pred = []
@@ -251,10 +276,20 @@ def entity_report(true_labels: pd.DataFrame, pred_labels: pd.DataFrame) -> pd.Da
 
             for _, row in entity_type_df.iterrows():
 
+                true_ent = None if row["true"] is None else row["true"][0]
+                pred_ent = None if row["pred"] is None else row["pred"][0]
+
                 if row["entity_comp_results"] is None:
                     continue
                 else:
                     ecr = row["entity_comp_results"]
+
+                if (
+                    (row["true_ent_type"] == entity_type) or # for ordinary support
+                    (ENTITY_EQ_ALIAS.get(row["true_ent_type"]) == entity_type) or # for number vs people
+                    (entity_type in ecr.tp or entity_type in ecr.fn or entity_type in ecr.mm) # for datetime, date, time mess
+                ):
+                    entity_support += 1
 
                 if entity_type in ecr.tp:
                     y_true.append(True)
@@ -270,11 +305,8 @@ def entity_report(true_labels: pd.DataFrame, pred_labels: pd.DataFrame) -> pd.Da
                     y_true.append(None)
                     y_pred.append(True)
 
-                if entity_type in ecr.mm:
-                    true_ent = row["true"][0]
-                    pred_ent = row["pred"][0]
-                    y_true_mmr.append(true_ent)
-                    y_pred_mmr.append(pred_ent)
+                y_true_mmr.append(true_ent)
+                y_pred_mmr.append(pred_ent)
 
             ent_fpr = slot_fpr(y_true, y_pred)
             ent_fnr = slot_fnr(y_true, y_pred)
@@ -288,7 +320,7 @@ def entity_report(true_labels: pd.DataFrame, pred_labels: pd.DataFrame) -> pd.Da
                 "FPR": ent_fpr,
                 "FNR": ent_fnr,
                 "Mismatch Rate": ent_mmr,
-                "Support": len(y_true),
+                "Support": entity_support,
                 "Positives": ent_pos,
                 "Negatives": ent_neg
             })

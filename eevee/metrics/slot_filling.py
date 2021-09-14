@@ -100,7 +100,7 @@ def slot_fnr(y_true: List[SlotLabel], y_pred: List[SlotLabel]) -> float:
     tp = mat[1, 1]
 
     if (fn + tp) == 0:
-        return 0
+        return 0.0
     else:
         return fn / (fn + tp)
 
@@ -124,7 +124,7 @@ def slot_fpr(y_true: List[SlotLabel], y_pred: List[SlotLabel]) -> float:
     tn, fp, *_ = mat.ravel()
 
     if (fp + tn) == 0:
-        return 0
+        return 0.0
     else:
         return fp / (fp + tn)
 

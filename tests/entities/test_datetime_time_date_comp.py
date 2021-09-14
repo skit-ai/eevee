@@ -222,7 +222,7 @@ def test_datetime_time_eq(row, ecr):
                 "datetime",
             ]], columns=["true", "pred", "true_ent_type", "pred_ent_type"]).iloc[0]
             , 
-            EntityComparisonResult(tp={"datetime": 1}, fp={}, fn={}, mm={}),
+            EntityComparisonResult(tp={"date": 1, "time": 1}, fp={}, fn={}, mm={}),
         ),
 
         # datetime-datetime, datetime should mismatch
@@ -234,9 +234,32 @@ def test_datetime_time_eq(row, ecr):
                 "datetime",
             ]], columns=["true", "pred", "true_ent_type", "pred_ent_type"]).iloc[0]
             , 
-            EntityComparisonResult(tp={}, fp={}, fn={}, mm={"datetime": 1}),
+            EntityComparisonResult(tp={}, fp={}, fn={}, mm={"date": 1, "time": 1}),
         ),
 
+        # datetime-datetime, datetime should mismatch
+        (
+            pd.DataFrame([[
+                [{'type': 'datetime', 'values': [{'value': '2019-04-22T17:00:00+05:30', 'type': 'value'}]}],
+                [{'type': 'datetime', 'values': [{'value': '2019-04-22T12:00:00+05:30', 'type': 'value'}]}],
+                "datetime",
+                "datetime",
+            ]], columns=["true", "pred", "true_ent_type", "pred_ent_type"]).iloc[0]
+            , 
+            EntityComparisonResult(tp={"date": 1}, fp={}, fn={}, mm={"time": 1}),
+        ),
+
+        # datetime-datetime, datetime should mismatch
+        (
+            pd.DataFrame([[
+                [{'type': 'datetime', 'values': [{'value': '2019-04-22T17:00:00+05:30', 'type': 'value'}]}],
+                [{'type': 'datetime', 'values': [{'value': '2019-04-21T17:00:00+05:30', 'type': 'value'}]}],
+                "datetime",
+                "datetime",
+            ]], columns=["true", "pred", "true_ent_type", "pred_ent_type"]).iloc[0]
+            , 
+            EntityComparisonResult(tp={"time": 1}, fp={}, fn={}, mm={"date": 1}),
+        ),
     ],
 )
 def test_datetime_datetime_eq(row, ecr):
