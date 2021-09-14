@@ -99,3 +99,7 @@ ENV/
 GPATH
 GRTAGS
 GTAGS
+
+data/predicted.entities.csv
+data/tagged.entities.csv
+data/*.csv
