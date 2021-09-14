@@ -52,7 +52,7 @@ def are_these_types_equal(true_ent_type, pred_ent_type):
 
 
 
-def compare_datetime_special_entities(row) -> EntityComparisonResult:
+def compare_datetime_special_entities(row) -> Optional[EntityComparisonResult]:
 
     tp = {}
     fp = {}
@@ -156,10 +156,10 @@ def compare_row_level_entities(row) -> Optional[EntityComparisonResult]:
     """
 
 
-    tp = {}
-    fp = {}
-    fn = {}
-    mm = {}
+    tp : Dict[str, int] = {}
+    fp : Dict[str, int] = {}
+    fn : Dict[str, int] = {}
+    mm : Dict[str, int] = {}
 
     if row["true"] is None:
         true_ent = None
