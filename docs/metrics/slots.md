@@ -11,8 +11,7 @@ Refer to [this](https://github.com/skit-ai/onboarding/blob/master/ml/slot-report
 
 # Entities
 
-Eevee let's you calculate (work in progress
-[here](https://github.com/skit-ai/eevee/pull/7)) all the important _turn level
+Eevee let's you calculate all the important _turn level
 metrics_ for various entities. We tag these data points using tog's, an internal
 tool, region tagging method.
 
@@ -26,12 +25,63 @@ Here is the list of entities that are supported:
 
 | Type                       | Support remarks |
 |----------------------------+-----------------|
-| `datetime`, `date`, `time` | `TODO`          |
-| `pattern`                  | `TODO`          |
-| `number`                   | `TODO`          |
+| `datetime`, `date`, `time` | internally `datetime` (given) is broken down to `date` and `time`, therefore false positives, false negatives, true positives are considered along `date` & `time` and reported outside.          |
+| `pattern`                  | not yet supported         |
+| `number`                   | supported superficially only. `number` and `people` are supported interchangeably at this point.          |
 
 ## Data schema
-`TODO`
+
+either `true-labels.csv` or `pred-labels.csv` should have rows like these:
+
+```
+id, entities
+1, '[{"type": "date", "values": [{"value": "2019-04-21T00:00:00+05:30", "type": "value"}]}]'
+2, '[{"text": "6th evening", "type": "time", "values": [{"type": "interval", "value": {"from": "2021-08-06T18:00:00.000-07:00", "to": "2021-08-07T00:00:00.000-07:00"}}]}]'
+3, 
+4, '[{"text": "67", "type": "number", "values": [{"type": "value", "value": 67}]}]'
+```
+
+the `entities` are in `JSON` format. 
+
+exact schema of entity looks like this:
+
+for ordinary `value` types:
+
+```
+[
+    {
+        "type": "entity_type", # date, time, datetime, number, people etc...
+        "values": [
+            {
+                "value": "entity_value", # "2019-04-21T00:00:00+05:30", 42, etc
+                "type": "value",
+            }
+        ]
+    }
+]
+```
+
+for `interval` value type:
+
+```
+[
+    {
+        "type": "entity_type", # date, time, datetime only
+        "values": [
+            {
+                "value": {"from": "...", "to": "..."},
+                "type": "interval",
+            }
+        ]
+    }
+]
+```
+
+
+Three important things to note:
+* we require only entity's `type`, `values` for calculating the `entity_report`, the `body` / `text` or any other key is not required as of now.
+* if no-prediction / no-annotation has been made for that particular entity leave it blank, pandas will parse it as `NaN`, accordingly it'll be processed as false negative / false positive.
+* Right now, we only support only one `value`, meaning we compare truth and prediction only on the first duckling prediction. Implies our comparisons right now for entities looks likes: `[{}]` vs `[{}]`, in future we'd be supporting `[{}, {}]` vs `[{}, {}, {}, {}, {}]`
 
 ## Usage
 
@@ -44,17 +94,30 @@ below:
 ```
 
 ```
-         FPR FNR Mismatch Rate Support Positives Negatives
-Entity                                                    
-date      NA  NA            NA      NA        NA        NA
-datetime  NA  NA            NA      NA        NA        NA
-people    NA  NA            NA      NA        NA        NA
-time      NA  NA            NA      NA        NA        NA
+        FPR       FNR  Mismatch Rate  Support  Positives  Negatives
+Entity                                                             
+date    1.0  0.142857            0.0        7          7          1
+people  0.0  0.333333            0.0        6          6          0
+time    1.0  0.125000            0.0        8          8          3
 ```
 
 ### Python module
 A common usage pattern for ML modeling is to use entity comparison functions
 from `eevee.ord.entity` module.
 
-`TODO`
+A demonstration on how to use `date_eq` and `time_eq`:
+
+```python
+>>> from eevee.ord.entity.datetime import date_eq, time_eq
+>>>
+>>> true_date = {'type': 'date', 'values': [{'value': '2019-04-21T00:00:00+05:30', 'type': 'value'}]}
+>>> pred_date = {'type': 'date', 'values': [{'value': '2019-04-21T00:00:00+05:30', 'type': 'value'}]}
+>>> date_eq(true_date, pred_date)
+True
+
+>>> true_time = {'type': 'time', 'values': [{'value': '2019-04-21T09:00:00+05:30', 'type': 'value'}]}
+>>> pred_time = {'type': 'time', 'values': [{'value': '2019-04-21T00:00:00+05:30', 'type': 'value'}]}
+>>> time_eq(true_time, pred_time)
+False
+```
 
