@@ -100,6 +100,14 @@ def test_dfs():
             'type': 'datetime',
             'values': [{'type': 'value', 'value': '2019-04-24T12:00:00+05:30'}]}]
         ],
+        [
+            14,
+            [{'text': '6th evening',
+            'type': 'time',
+            'values': [{'type': 'interval',
+                        'value': {'from': '2021-08-06T18:00:00.000-07:00',
+                                'to': '2021-08-07T00:00:00.000-07:00'}}]}]
+        ],
     ]
 
     pred = [
@@ -184,6 +192,12 @@ def test_dfs():
             'type': 'date',
             'values': [{'type': 'value', 'value': '2019-04-24T12:00:00+05:30'}]}]
         ],
+        [
+            14,
+            [{'text': '67',
+            'type': 'number',
+            'values': [{'type': 'value', 'value': 67}]}]
+        ],
     ]
 
     true_labels = pd.DataFrame(true, columns=columns)
@@ -206,12 +220,21 @@ def test_dfs():
                 "Negatives": 1 + 1, # date + datetime
             },
             {
+                "Entity": "number",
+                "FPR": 1/1,
+                "FNR": 0.0,
+                "Mismatch Rate": 0.0,
+                "Support": 0,
+                "Positives": 0,
+                "Negatives": 1,
+            },
+            {
                 "Entity": "time",
                 "FPR": 2/2,
-                "FNR": 4/7,
+                "FNR": 5/8,
                 "Mismatch Rate": 1/3,
-                "Support": 4 + 4, # time + datetime
-                "Positives": 3 + 4, # time + datetime
+                "Support": 4 + 5, # time + datetime
+                "Positives": 3 + 5, # time + datetime
                 "Negatives": 1 + 1, # date + datetime
             },
         ]

@@ -268,3 +268,36 @@ def test_datetime_datetime_eq(row, ecr):
 
 
 
+@pytest.mark.parametrize(
+    "truth, pred, same",
+    [
+        # checks only the time interval 18:00 to 00:00 not day/year.
+        (
+        {'text': '24th July night',
+        'type': 'time',
+        'values': [{'type': 'interval',
+                    'value': {'from': '2021-07-24T18:00:00.000-07:00',
+                            'to': '2021-07-25T00:00:00.000-07:00'}}]},
+        {'text': '24th July night',
+        'type': 'time',
+        'values': [{'type': 'interval',
+                    'value': {'from': '2022-07-24T18:00:00.000-07:00',
+                                'to': '2022-07-25T00:00:00.000-07:00'}}]},
+        True,
+        ),
+        # a time given and interval given for time, doesn't work right now.
+        (
+        {"text": "12pm", 
+        "type": "time", 
+        'values': [{'type': 'value', 'value': '2021-07-22T12:00:00.000+05:30'}]},
+        {'text': 'twelve pm to eleven am',
+        'type': 'time',
+        "values": [{"type": "interval", 
+                    "value": {"from": "2021-07-22T12:00:00.000+05:30", 
+                            "to": "2021-07-23T12:00:00.000+05:30"}}]},
+        False,
+        ),
+    ],
+)
+def test_interval_eq(truth, pred, same):
+    assert time_eq(truth, pred) == same
