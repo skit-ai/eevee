@@ -325,4 +325,6 @@ def entity_report(true_labels: pd.DataFrame, pred_labels: pd.DataFrame) -> pd.Da
                 "Negatives": ent_neg
             })
 
-    return pd.DataFrame(report)
+    report = pd.DataFrame(report)
+    report.set_index("Entity", inplace=True)
+    return report

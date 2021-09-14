@@ -216,6 +216,7 @@ def test_dfs():
             },
         ]
     )
+    expected_report.set_index("Entity", inplace=True)
 
     print("entity report")
     print(er)
