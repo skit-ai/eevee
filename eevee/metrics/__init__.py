@@ -4,5 +4,5 @@ from eevee.metrics.classification import intent_report
 from eevee.metrics.entity import entity_report
 from eevee.metrics.slot_filling import (slot_capture_rate, slot_fnr, slot_fpr,
                                         mismatch_rate, slot_retry_rate, slot_negatives,
-                                        slot_positives, top_k_slot_mismatch_rate
+                                        slot_support, top_k_slot_mismatch_rate
                                         )

@@ -129,7 +129,7 @@ def slot_fpr(y_true: List[SlotLabel], y_pred: List[SlotLabel]) -> float:
         return fp / (fp + tn)
 
 
-def slot_positives(y_true: List[SlotLabel], y_pred: List[SlotLabel]) -> float:
+def slot_support(y_true: List[SlotLabel], y_pred: List[SlotLabel]) -> float:
     """
     """
 
