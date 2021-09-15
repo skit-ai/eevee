@@ -208,34 +208,44 @@ def test_dfs():
 
     er = entity_report(true_labels, pred_labels)
 
+    date_support = 4 + 4 # date + datetime
+    number_support = 0
+    time_support = 4 + 5 # time + datetime
+
+    date_neg = true_labels.shape[0] - date_support
+    number_neg = true_labels.shape[0] - number_support
+    time_neg = true_labels.shape[0] - time_support
+
+
+    # fnr = entity_fn / entity_fn + entity_tp + entity_mm
+    # mmr = mm / tp + mm
+
+
     expected_report = pd.DataFrame(
         [
             {
                 "Entity": "date",
-                "FPR": 2/2,
-                "FNR": 4/7,
-                "Mismatch Rate": 1/3,
-                "Support": 4 + 4, # date + datetime
-                "Positives": 3 + 4, # date + datetime
-                "Negatives": 1 + 1, # date + datetime
+                "FPR": 2/date_neg,
+                "FNR": 4/(4 + 3 + 1),
+                "Mismatch Rate": 1/(3 + 1),
+                "Support": date_support,
+                "Negatives": date_neg,
             },
             {
                 "Entity": "number",
-                "FPR": 1/1,
+                "FPR": 1/number_neg,
                 "FNR": 0.0,
                 "Mismatch Rate": 0.0,
-                "Support": 0,
-                "Positives": 0,
-                "Negatives": 1,
+                "Support": number_support,
+                "Negatives": number_neg,
             },
             {
                 "Entity": "time",
-                "FPR": 2/2,
-                "FNR": 5/8,
-                "Mismatch Rate": 1/3,
-                "Support": 4 + 5, # time + datetime
-                "Positives": 3 + 5, # time + datetime
-                "Negatives": 1 + 1, # date + datetime
+                "FPR": 2/time_neg,
+                "FNR": 5/(4 + 4 + 1),
+                "Mismatch Rate": 1/(3+1),
+                "Support": time_support,
+                "Negatives": time_neg,
             },
         ]
     )
