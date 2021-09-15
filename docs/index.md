@@ -24,7 +24,7 @@ For now, you have to install eevee using Github release URLs. The current
 version can be installed by using the following:
 
 ```bash
-pip install https://github.com/skit-ai/eevee/releases/download/0.6.0/eevee-0.6.0-py3-none-any.whl
+pip install https://github.com/skit-ai/eevee/releases/download/1.0.0/eevee-1.0.0-py3-none-any.whl
 ```
 
 ## Usage
