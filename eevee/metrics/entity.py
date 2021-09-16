@@ -26,10 +26,10 @@ ENTITY_EQ_FNS = {
 }
 
 
-ENTITY_EQ_ALIAS = {
-    "number": "number",
-    "people": "number",
-}
+# ENTITY_EQ_ALIAS = {
+#     "number": "number",
+#     "people": "number",
+# }
 
 
 @dataclass
@@ -49,10 +49,14 @@ def are_generic_entity_type_and_value_equal(true_ent, pred_ent):
 
 def are_these_types_equal(true_ent_type, pred_ent_type):
 
-    if (true_ent_type in ENTITY_EQ_ALIAS and 
-        pred_ent_type in ENTITY_EQ_ALIAS and
-        (ENTITY_EQ_ALIAS[true_ent_type] == ENTITY_EQ_ALIAS[pred_ent_type])
-    ) or (true_ent_type == pred_ent_type and true_ent_type is not None):
+    # TODO: decide upon aliasing or not for number
+    # people 
+
+    # if (true_ent_type in ENTITY_EQ_ALIAS and 
+    #     pred_ent_type in ENTITY_EQ_ALIAS and
+    #     (ENTITY_EQ_ALIAS[true_ent_type] == ENTITY_EQ_ALIAS[pred_ent_type]):
+
+    if (true_ent_type == pred_ent_type and true_ent_type is not None):
         return True
     return False
 
@@ -361,7 +365,7 @@ def entity_report(true_labels: pd.DataFrame, pred_labels: pd.DataFrame) -> pd.Da
 
             if (
                 (row["true_ent_type"] == entity_type) or # for ordinary support
-                (ENTITY_EQ_ALIAS.get(row["true_ent_type"]) == entity_type) or # for number vs people
+                # (ENTITY_EQ_ALIAS.get(row["true_ent_type"]) == entity_type) or # for number vs people
                 (entity_type in ecr.tp or entity_type in ecr.fn or entity_type in ecr.mm) # for datetime, date, time mess
             ):
                 entity_support += 1

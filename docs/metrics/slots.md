@@ -27,7 +27,7 @@ Here is the list of entities that are supported:
 |----------------------------+-----------------|
 | `datetime`, `date`, `time` | internally `datetime` (given) is broken down to `date` and `time`, therefore false positives, false negatives, true positives are considered along `date` & `time` and reported outside.          |
 | `pattern`                  | not yet supported         |
-| `number`                   | supported superficially only. `number` and `people` are supported interchangeably at this point.          |
+| `number`                   | supported superficially only. `number` and `people` **are not the same**, we still debating on whether to alias all `number` to `people`, vice-versa or not.          |
 
 ## Data schema
 
@@ -70,6 +70,7 @@ for `interval` value type:
         "type": "entity_type", # date, time, datetime only
         "values": [
             {
+                # it is fine, if you have either of `from` or `to`, better if you have both.
                 "value": {"from": "...", "to": "..."},
                 "type": "interval",
             }
@@ -162,4 +163,3 @@ True
 >>> time_eq(true_time, pred_time)
 False
 ```
-

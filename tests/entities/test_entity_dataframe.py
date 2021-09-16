@@ -132,12 +132,12 @@ def test_dfs():
             'type': 'number',
             'values': [{'type': 'value', 'value': 85}]}]
         ],
-        # [
-        #     19,
-        #     [{'text': 'eighty five',
-        #     'type': 'number',
-        #     'values': [{'type': 'value', 'value': 85}]}]
-        # ],
+        [
+            19,
+            [{'text': 'eighty five',
+            'type': 'number',
+            'values': [{'type': 'value', 'value': 85}]}]
+        ],
     ]
 
     pred = [
@@ -252,12 +252,12 @@ def test_dfs():
             'type': 'number',
             'values': [{'type': 'value', 'value': 85}]}]
         ],
-        # [
-        #     19,
-        #     [{'text': 'eighty five',
-        #     'type': 'people',
-        #     'values': [{'type': 'value', 'value': 85}]}]
-        # ],
+        [
+            19,
+            [{'text': 'eighty five',
+            'type': 'people',
+            'values': [{'type': 'value', 'value': 85}]}]
+        ],
     ]
 
     true_labels = pd.DataFrame(true, columns=columns)
@@ -269,14 +269,16 @@ def test_dfs():
     er = entity_report(true_labels, pred_labels)
 
     date_support = 4 + 4 # date + datetime
-    number_support = 1
+    number_support = 2
     time_support = 4 + 5 # time + datetime
     product_kind_support = 3
+    people_support = 0
 
     date_neg = true_labels.shape[0] - date_support
     number_neg = true_labels.shape[0] - number_support
     time_neg = true_labels.shape[0] - time_support
     product_kind_neg = true_labels.shape[0] - product_kind_support
+    people_neg = true_labels.shape[0] - people_support
 
 
     # fnr = entity_fn / entity_fn + entity_tp + entity_mm
@@ -296,10 +298,18 @@ def test_dfs():
             {
                 "Entity": "number",
                 "FPR": 2/number_neg,
-                "FNR": 0.0,
+                "FNR": 1/(1 + 1),
                 "Mismatch Rate": 0.0,
                 "Support": number_support,
                 "Negatives": number_neg,
+            },
+            {
+                "Entity": "people",
+                "FPR": 1/people_neg,
+                "FNR": 0.0,
+                "Mismatch Rate": 0.0,
+                "Support": people_support,
+                "Negatives": people_neg,
             },
             {
                 "Entity": "product_kind",
