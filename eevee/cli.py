@@ -4,12 +4,13 @@ eevee
 Usage:
   eevee intent <true-labels> <pred-labels> [--json]
   eevee asr <true-labels> <pred-labels> [--json]
-  eevee entity <true-labels> <pred-labels> [--json] [--breakdown]
+  eevee entity <true-labels> <pred-labels> [--json] [--breakdown] [--dump]
 
 Options:
   --json                    If true, dump the report in json format for machine
                             consumption instead of pretty printing.
   --breakdown               If true, breaksdown the categorical entities
+  --dump                    If true, dumps the prediction fp, fn, mm errors as csvs.
 
 Arguments:
   <true-labels>             Path to file with true labels with our dataframe
@@ -61,11 +62,12 @@ def main():
         pred_labels = pd.read_csv(args["<pred-labels>"])
 
         breakdown = True if args["--breakdown"] else False
+        dump = True if args["--dump"] else False
 
         if breakdown:
             output = categorical_entity_report(true_labels, pred_labels)
         else:
-            output = entity_report(true_labels, pred_labels)
+            output = entity_report(true_labels, pred_labels, dump)
 
         if args["--json"]:
             print(output.to_json(indent=2))
