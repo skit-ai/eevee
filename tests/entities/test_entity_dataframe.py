@@ -1,7 +1,7 @@
 import json
 import pandas as pd
 
-from eevee.metrics.entity import entity_report
+from eevee.metrics.entity import categorical_entity_report, entity_report
 
 
 def test_dfs():
@@ -108,6 +108,36 @@ def test_dfs():
                         'value': {'from': '2021-08-06T18:00:00.000-07:00',
                                 'to': '2021-08-07T00:00:00.000-07:00'}}]}]
         ],
+        [
+            15,
+            [{'text': 'want credit card',
+            'type': 'product_kind',
+            'values': [{'type': 'categorical', 'value': 'credit_card'}]}]
+        ],
+        [
+            16,
+            [{'text': 'want credit card',
+            'type': 'product_kind',
+            'values': [{'type': 'categorical', 'value': 'credit_card'}]}]
+        ],
+        [
+            17,
+            [{'text': 'want credit card',
+            'type': 'product_kind',
+            'values': [{'type': 'categorical', 'value': 'credit_card'}]}]
+        ],
+        [
+            18,
+            [{'text': 'eighty five',
+            'type': 'number',
+            'values': [{'type': 'value', 'value': 85}]}]
+        ],
+        # [
+        #     19,
+        #     [{'text': 'eighty five',
+        #     'type': 'number',
+        #     'values': [{'type': 'value', 'value': 85}]}]
+        # ],
     ]
 
     pred = [
@@ -198,6 +228,36 @@ def test_dfs():
             'type': 'number',
             'values': [{'type': 'value', 'value': 67}]}]
         ],
+        [
+            15,
+            [{'text': 'want credit card',
+            'type': 'product_kind',
+            'values': [{'type': 'categorical', 'value': 'credit_card'}]}]
+        ],
+        [
+            16,
+            [{'text': 'want credit card',
+            'type': 'product_kind',
+            'values': [{'type': 'categorical', 'value': 'debit_card'}]}]
+        ],
+        [
+            17,
+            [{'text': 'eighty five',
+            'type': 'number',
+            'values': [{'type': 'value', 'value': 85}]}]
+        ],
+        [
+            18,
+            [{'text': 'eighty five',
+            'type': 'number',
+            'values': [{'type': 'value', 'value': 85}]}]
+        ],
+        # [
+        #     19,
+        #     [{'text': 'eighty five',
+        #     'type': 'people',
+        #     'values': [{'type': 'value', 'value': 85}]}]
+        # ],
     ]
 
     true_labels = pd.DataFrame(true, columns=columns)
@@ -209,12 +269,14 @@ def test_dfs():
     er = entity_report(true_labels, pred_labels)
 
     date_support = 4 + 4 # date + datetime
-    number_support = 0
+    number_support = 1
     time_support = 4 + 5 # time + datetime
+    product_kind_support = 3
 
     date_neg = true_labels.shape[0] - date_support
     number_neg = true_labels.shape[0] - number_support
     time_neg = true_labels.shape[0] - time_support
+    product_kind_neg = true_labels.shape[0] - product_kind_support
 
 
     # fnr = entity_fn / entity_fn + entity_tp + entity_mm
@@ -233,11 +295,19 @@ def test_dfs():
             },
             {
                 "Entity": "number",
-                "FPR": 1/number_neg,
+                "FPR": 2/number_neg,
                 "FNR": 0.0,
                 "Mismatch Rate": 0.0,
                 "Support": number_support,
                 "Negatives": number_neg,
+            },
+            {
+                "Entity": "product_kind",
+                "FPR": 0.0,
+                "FNR": 1/(1 + 1 + 1),
+                "Mismatch Rate": 1/2,
+                "Support": product_kind_support,
+                "Negatives": product_kind_neg,
             },
             {
                 "Entity": "time",
@@ -257,3 +327,32 @@ def test_dfs():
     print(expected_report)
     
     assert er.to_dict("records") == expected_report.to_dict("records")
+    assert er.index.equals(expected_report.index)
+
+
+    cat_report_df = categorical_entity_report(true_labels, pred_labels)
+
+    expected_report = pd.DataFrame(
+        [
+            {   
+                "precision": 0.0,
+                "recall": 0.0,
+                "f1-score": 0.0,
+                "support": 1,
+            },
+            {   
+                "precision": 1.0,
+                "recall": 1/3,
+                "f1-score": 1/2,
+                "support": 3,
+            },
+        ]
+    , index=["_", "product_kind/credit_card"])
+
+    print("cat entity report")
+    print(cat_report_df)
+    print("expected report")
+    print(expected_report)
+
+    assert cat_report_df.to_dict("records") == expected_report.to_dict("records")
+    assert cat_report_df.index.equals(expected_report.index)
