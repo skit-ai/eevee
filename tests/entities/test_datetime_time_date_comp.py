@@ -86,10 +86,6 @@ def test_datetime_time_eq(truth, pred, same):
     assert time_eq(truth, pred) == same
 
 
-# TODO: yet to test out interval
-
-
-
 @pytest.mark.parametrize(
     "row, ecr",
     [
@@ -295,6 +291,36 @@ def test_datetime_datetime_eq(row, ecr):
         "values": [{"type": "interval", 
                     "value": {"from": "2021-07-22T12:00:00.000+05:30", 
                             "to": "2021-07-23T12:00:00.000+05:30"}}]},
+        False,
+        ),
+        # TODO: handle ambiguous intervals. with only `from` or `to`
+        # a time given and interval given for time, doesn't work right now.
+        (
+        # truth
+        {"text": "12pm", 
+        "type": "time", 
+        'values': [{'type': 'value', 'value': '2021-07-22T12:00:00.000+05:30'}]},
+
+        # pred
+        {'text': 'twelve pm to eleven am',
+        'type': 'time',
+        "values": [{"type": "interval", 
+                    "value": {"from": "2021-07-22T00:00:00.000+05:30", 
+                            }}]},
+        False,
+        ),
+        # a time given and interval given for time, doesn't work right now.
+        (
+        # truth
+        {"text": "12pm", 
+        "type": "time", 
+        'values': [{'type': 'value', 'value': '2021-07-22T12:00:00.000+05:30'}]},
+
+        # pred
+        {'text': 'twelve pm to eleven am',
+        'type': 'time',
+        "values": [{"type": "interval", 
+                    "value": {"to": "2021-07-22T11:00:00.000+05:30"}}]},
         False,
         ),
     ],
