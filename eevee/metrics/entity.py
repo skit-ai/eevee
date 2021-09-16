@@ -259,13 +259,18 @@ def categorical_entity_report(true_labels: pd.DataFrame, pred_labels: pd.DataFra
     df.reset_index(inplace=True)
 
     to_be_filtered = list(ENTITY_EQ_FNS.keys()) + ["datetime"]
+
+    entity_types = sorted(set([ent["type"] for ent in py_.flatten(df["true"].dropna().tolist() + df["pred"].dropna().tolist())]))
+    filtered_entity_types = sorted(list(set(entity_types) - set(to_be_filtered)))
+
+    filtered_entity_df = df[df["true_ent_type"].isin(filtered_entity_types) | df["true_ent_type"].isna()]
     
-    if to_be_filtered:
+    if not filtered_entity_df.empty:
 
         y_true = []
         y_pred = []
 
-        for _, row in df.iterrows():
+        for _, row in filtered_entity_df.iterrows():
 
             true_ent = None if row["true"] is None else row["true"][0]
             pred_ent = None if row["pred"] is None else row["pred"][0]
@@ -309,6 +314,9 @@ def categorical_entity_report(true_labels: pd.DataFrame, pred_labels: pd.DataFra
 
         cat_report_df = pd.DataFrame(cls_report).transpose()
         cat_report_df["support"] = cat_report_df["support"].astype(int)
+        cat_report_df = cat_report_df[cat_report_df["support"] > 0]
+        cat_report_df.sort_index(inplace=True)
+        cat_report_df.index.name = "Categorical Entity"
         return cat_report_df
 
 
@@ -345,9 +353,6 @@ def entity_report(true_labels: pd.DataFrame, pred_labels: pd.DataFrame) -> pd.Da
         entity_mm = 0
 
         for _, row in entity_type_df.iterrows():
-
-            true_ent = None if row["true"] is None else row["true"][0]
-            pred_ent = None if row["pred"] is None else row["pred"][0]
 
             if row["entity_comp_results"] is None:
                 continue

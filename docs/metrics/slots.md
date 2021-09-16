@@ -39,22 +39,23 @@ id, entities
 2, '[{"text": "6th evening", "type": "time", "values": [{"type": "interval", "value": {"from": "2021-08-06T18:00:00.000-07:00", "to": "2021-08-07T00:00:00.000-07:00"}}]}]'
 3, 
 4, '[{"text": "67", "type": "number", "values": [{"type": "value", "value": 67}]}]'
+5, '[{"text": "want credit card", "type": "product_kind", "values": [{"type": "categorical", "value": "credit_card"}]}]'
 ```
 
 the `entities` are in `JSON` format. 
 
 exact schema of entity looks like this:
 
-for ordinary `value` types:
+for ordinary `value` or `categorical` types:
 
 ```
 [
     {
-        "type": "entity_type", # date, time, datetime, number, people etc...
+        "type": "entity_type", # date, time, datetime, number, people, product_kind, etc...
         "values": [
             {
-                "value": "entity_value", # "2019-04-21T00:00:00+05:30", 42, etc
-                "type": "value",
+                "value": "entity_value", # "2019-04-21T00:00:00+05:30", 42, credit_card, etc
+                "type": "entity_value_type", # "type" or "categorical"
             }
         ]
     }
@@ -93,13 +94,54 @@ below:
  eevee entity ./true-labels.csv ./pred-labels.csv
 ```
 
+on standard entities like `date`, `time`, `datetime`, `number` etc ..
 ```
-        FPR       FNR  Mismatch Rate  Support  Positives  Negatives
+               FPR      FNR  Mismatch Rate  Support  Negatives
+Entity                                                        
+duration  0.004854  0.00000       0.000000        0        618
+number    0.070033  0.00000       0.500000        4        614
+ordinal   0.006515  1.00000       0.000000        4        614
+time      0.016822  0.13253       0.055556       83        535
+```
+
+on categorical custom entities from clients ...
+
+```
+                   FPR       FNR  Mismatch Rate  Support  Negatives
 Entity                                                             
-date    1.0  0.142857            0.0        7          7          1
-people  0.0  0.333333            0.0        6          6          0
-time    1.0  0.125000            0.0        8          8          3
+actions       0.004848  0.294118       0.000000       17      14025
+form_type     0.000997  0.500000       0.000000        6      14036
+language      0.001567  0.000000       0.000000        0      14042
+method_type   0.000071  1.000000       0.000000        8      14034
+product_kind  0.041297  0.141987       0.076258     3775      10267
 ```
+
+only on categorical entities we can get extra `breakdown` (pass `--breakdown` flag), which will report entity mismatches on their categorical values, example:
+
+```
+$ eevee entity data/cat_tog999.tagged.entities.csv data/cat_tog999.predicted.entities.csv --breakdown
+
+                             precision    recall  f1-score  support
+Categorical Entity                                                 
+_                             0.949898  0.952032  0.950964    10236
+actions/change                0.063492  0.666667  0.115942        6
+actions/increase              0.470588  0.727273  0.571429       11
+form_type/form                0.125000  0.500000  0.200000        4
+form_type/request_form        1.000000  0.500000  0.666667        2
+method_type/digital_payment   0.000000  0.000000  0.000000        8
+product_kind/bank_account     0.797897  0.868957  0.831912      786
+product_kind/card             0.240000  0.821918  0.371517       73
+product_kind/cheque_book      0.848485  0.823529  0.835821       34
+product_kind/credit_card      0.915548  0.797370  0.852382     2053
+product_kind/debit_card       0.877686  0.713710  0.787250      744
+product_kind/imps             1.000000  1.000000  1.000000        1
+product_kind/mobile_banking   0.444444  0.571429  0.500000        7
+product_kind/neft             1.000000  0.333333  0.500000        3
+product_kind/net_banking      0.311828  0.725000  0.436090       40
+product_kind/upi              0.857143  0.529412  0.654545       34
+```
+
+where `_` represents `NaN` vs `NaN` comparisons. this helps with understanding when it comes to misfiring on no-entities.
 
 ### Python module
 A common usage pattern for ML modeling is to use entity comparison functions
