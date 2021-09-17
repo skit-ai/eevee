@@ -39,6 +39,17 @@ from eevee.metrics.entity import EntityComparisonResult, compare_datetime_specia
             {'type': 'date', 'values': [{'value': '2019-04-21T00:00:00+05:30', 'type': 'value'}]}, 
             False,
         ),
+
+        # since 1 vs 3 length mismatch, we don't know which one is correct.
+        # therefore putting in mismatch, definitely not the expected behavior.
+        (
+            {'type': 'date', 'values': [{'value': '2021-09-18T00:00:00+05:30', 'type': 'value'}]}, 
+            {'type': 'date', 'values': [
+                    {'value': '2021-09-18T00:00:00+05:30', 'type': 'value'},
+                    {'value': '2022-09-18T00:00:00+05:30', 'type': 'value'},
+                    {'value': '2023-09-18T00:00:00+05:30', 'type': 'value'}]}, 
+            False,
+        ),
     ],
 )
 def test_datetime_date_eq(truth, pred, same):
@@ -255,6 +266,27 @@ def test_datetime_time_eq(row, ecr):
             ]], columns=["true", "pred", "true_ent_type", "pred_ent_type"]).iloc[0]
             , 
             EntityComparisonResult(tp={"time": 1}, fp={}, fn={}, mm={"date": 1}),
+        ),
+
+        # true date vs several predicted dates
+        # even though truth is present in predicted, there still 1 vs 3, not sure
+        # which one is correct.
+        (
+            pd.DataFrame([[
+
+                # truth
+                [{'type': 'date', 'values': [{'value': '2021-09-18T00:00:00+05:30', 'type': 'value'}]}],
+
+                # multiple values predicted
+                [{'type': 'date', 'values': [
+                    {'value': '2021-09-18T00:00:00+05:30', 'type': 'value'},
+                    {'value': '2022-09-18T00:00:00+05:30', 'type': 'value'},
+                    {'value': '2023-09-18T00:00:00+05:30', 'type': 'value'}]}],
+                "date",
+                "date",
+            ]], columns=["true", "pred", "true_ent_type", "pred_ent_type"]).iloc[0]
+            , 
+            EntityComparisonResult(tp={}, fp={}, fn={}, mm={"date": 1}),
         ),
     ],
 )
