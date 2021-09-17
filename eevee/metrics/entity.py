@@ -168,8 +168,11 @@ def compare_datetime_special_entities(row) -> Optional[EntityComparisonResult]:
             # but prediction is neither a date/time
             # therefore they are false negatives for date
             # and time.
+            # and false positive for predicted entity.
             fn["date"] = 1
             fn["time"] = 1
+            if pred_ent is not None:
+                fp[pred_ent_type] = 1
     
     elif pred_ent_type == "datetime":
 
@@ -195,8 +198,13 @@ def compare_datetime_special_entities(row) -> Optional[EntityComparisonResult]:
             # but truth is neither a date/time
             # therefore they are false positives for date
             # and time.
+            # and false negative for true entity that didn't
+            # get predicted.
             fp["date"] = 1
             fp["time"] = 1
+
+            if true_ent is not None:
+                fn[true_ent_type] = 1
 
 
     ecr = EntityComparisonResult(tp=tp, fp=fp, fn=fn, mm=mm)
