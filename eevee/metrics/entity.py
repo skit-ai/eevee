@@ -5,7 +5,7 @@ Entity comparison and reporting functions.
 
 import json
 from dataclasses import dataclass
-from typing import Dict, Optional
+from typing import Callable, Dict, Optional
 
 import numpy as np
 import pandas as pd
@@ -17,7 +17,8 @@ import eevee.ord.entity.people as ord_people
 import eevee.ord.entity.number as ord_number
 
 
-
+# legacy plute.ord equality functions for entities
+# derived from : https://gitlab.com/vernacularai/ai/clients/plute/-/tree/master/plute/ord/entities
 ENTITY_EQ_FNS = {
     "date": ord_datetime.date_eq,
     "time": ord_datetime.time_eq,
@@ -39,7 +40,12 @@ class EntityComparisonResult:
     fn: Dict
     mm: Dict
 
+
 def dump_error_reports(df: pd.DataFrame, fp_error_idxs, fn_error_idxs, mm_errror_idxs):
+    """
+    dumps the .csv files for fp, fn, mm of all entities
+    for deeper analysis.
+    """
 
     df.drop(labels=["index", "true", "pred", "entity_comp_results"], axis=1, inplace=True)
     df.rename(columns={"entities_x": "true_entities", "entities_y": "pred_entities"}, inplace=True)
@@ -54,6 +60,9 @@ def dump_error_reports(df: pd.DataFrame, fp_error_idxs, fn_error_idxs, mm_errror
 
 
 def are_generic_entity_type_and_value_equal(true_ent, pred_ent):
+    """
+    checks values for two given entities are same or not.
+    """
 
     true_ent_value = true_ent["values"][0]["value"]
     pred_ent_value = pred_ent["values"][0]["value"]
@@ -61,6 +70,12 @@ def are_generic_entity_type_and_value_equal(true_ent, pred_ent):
 
 
 def are_these_types_equal(true_ent_type, pred_ent_type):
+    """
+    compares if two entities are of same type.
+
+    in future it may support scenes where number and people
+    are interchange-able entities.
+    """
 
     # TODO: decide upon aliasing or not for number
     # people 
@@ -75,6 +90,16 @@ def are_these_types_equal(true_ent_type, pred_ent_type):
 
 
 def compare_datetime_special_entities(row) -> Optional[EntityComparisonResult]:
+    """
+    datetime is a different category, datetime needs to be broken
+    down into date & time. 
+
+    accordingly their entities will be compared with date_eq/time_eq
+    not datetime_eq
+
+    therefore these comparisons (where atleast one entity is datetime),
+    will result in date or time, being part of tp/fp/fn/mm.
+    """
 
     tp = {}
     fp = {}
@@ -91,14 +116,19 @@ def compare_datetime_special_entities(row) -> Optional[EntityComparisonResult]:
     else:
         pred_ent = row["pred"][0]
 
+    # when both truth and prediction is absent (NaN) for this turn id
+    # we go ahead and return None for ECR
     if true_ent is None and pred_ent is None:
         return None
 
     pred_ent_type = row["pred_ent_type"]
     true_ent_type = row["true_ent_type"]
 
+    # when both truth and predicted entities are datetime
     if true_ent_type == "datetime" and pred_ent_type == "datetime":
 
+        # we have to compare both their dates & times separately
+        # and act accordingly with date/time's tp/fp/fn/mm
         datetime_two_types = ["date", "time"]
 
         for dtt in datetime_two_types:
@@ -114,6 +144,8 @@ def compare_datetime_special_entities(row) -> Optional[EntityComparisonResult]:
 
     elif true_ent_type == "datetime":
         
+        # situation where truth is datetime,
+        # but prediction is either time/date
         if pred_ent_type in ["time", "date"]:
 
             eq_fn_for_this_entity = ENTITY_EQ_FNS[pred_ent_type]
@@ -131,11 +163,18 @@ def compare_datetime_special_entities(row) -> Optional[EntityComparisonResult]:
                 fn["time"] = 1
 
         else:
+
+            # situation where the truth is datetime
+            # but prediction is neither a date/time
+            # therefore they are false negatives for date
+            # and time.
             fn["date"] = 1
             fn["time"] = 1
     
     elif pred_ent_type == "datetime":
 
+        # situation where prediction is datetime,
+        # but truth is either time/date
         if true_ent_type in ["time", "date"]:
 
             eq_fn_for_this_entity = ENTITY_EQ_FNS[true_ent_type]
@@ -152,6 +191,10 @@ def compare_datetime_special_entities(row) -> Optional[EntityComparisonResult]:
                 fp["time"] = 1
 
         else:
+            # situation where the prediction is datetime
+            # but truth is neither a date/time
+            # therefore they are false positives for date
+            # and time.
             fp["date"] = 1
             fp["time"] = 1
 
@@ -195,58 +238,72 @@ def compare_row_level_entities(row) -> Optional[EntityComparisonResult]:
     if true_ent is None and pred_ent is None:
         return None
 
+    true_ent_type = row["true_ent_type"]
+    pred_ent_type = row["pred_ent_type"]
 
     # special case handling where one entity is `datetime`
-    if "datetime" in [row["true_ent_type"], row["pred_ent_type"]]:
+    if "datetime" in [true_ent_type, pred_ent_type]:
         ecr = compare_datetime_special_entities(row)
         return ecr
 
 
-    if are_these_types_equal(row["true_ent_type"], row["pred_ent_type"]):
+    if are_these_types_equal(true_ent_type, pred_ent_type):
         # type matched here
         
-        if row["true_ent_type"] in ENTITY_EQ_FNS:
-            eq_fn_for_this_entity = ENTITY_EQ_FNS[row["true_ent_type"]]
+        if true_ent_type in ENTITY_EQ_FNS:
+            eq_fn_for_this_entity : Callable = ENTITY_EQ_FNS[true_ent_type]
             is_this_entity_type_value_equal = eq_fn_for_this_entity(true_ent, pred_ent)
         else:
             # entity_type outside datetime, date, time, number, people
             is_this_entity_type_value_equal = are_generic_entity_type_and_value_equal(true_ent, pred_ent)
 
+        # afaik the += 1 sitaution has no need for now
+        # but for situations in future where there are going to multiple
+        # entities in the list.
 
         if is_this_entity_type_value_equal:
             # value matched here
-            if row["true_ent_type"] in tp:
-                tp[row["true_ent_type"]] += 1
+            if true_ent_type in tp:
+                tp[true_ent_type] += 1
             else:
-                tp[row["true_ent_type"]] = 1
+                tp[true_ent_type] = 1
         else:
             # mismatch on value for this entity type.
-            if row["true_ent_type"] in mm:
-                mm[row["true_ent_type"]] += 1
+            if true_ent_type in mm:
+                mm[true_ent_type] += 1
             else:
-                mm[row["true_ent_type"]] = 1
+                mm[true_ent_type] = 1
             
     else:
         # type didn't match here
         # true entity type should be predicted but it didn't happen, 
         #     therefore false negative for true entity type
-        if row["true_ent_type"] in fn:
-            fn[row["true_ent_type"]] += 1
+        if true_ent_type in fn:
+            fn[true_ent_type] += 1
         else:
-            fn[row["true_ent_type"]] = 1
+            fn[true_ent_type] = 1
 
         # unexpected entity type got predicted happened,
         #     therefore false positive for predicted entity type
-        if row["pred_ent_type"] in fp:
-            fp[row["pred_ent_type"]] += 1
+        if pred_ent_type in fp:
+            fp[pred_ent_type] += 1
         else:
-            fp[row["pred_ent_type"]] = 1
+            fp[pred_ent_type] = 1
 
     ecr = EntityComparisonResult(tp=tp, fp=fp, fn=fn, mm=mm)
     return ecr
 
 
 def get_entity_df_by_ecr(df: pd.DataFrame, entity_type: str):
+    """
+    when you have column of EntityComparisonResult,
+    but you need all the entity rows which have this particular
+    `entity_type` in EntityComparisonResult's tp/fp/fn/mm.
+
+    therefore finds the index of rows where it happens
+    and returns that particular selection of df for this
+    given `entity_type`
+    """
 
     entity_idxs = []
 
@@ -275,11 +332,14 @@ def categorical_entity_report(true_labels: pd.DataFrame, pred_labels: pd.DataFra
 
     df.reset_index(inplace=True)
 
+    # we don't want classification report on standard entities like: date, time, number, people etc
+    # we want it only on other entities.
     to_be_filtered = list(ENTITY_EQ_FNS.keys()) + ["datetime"]
 
     entity_types = sorted(set([ent["type"] for ent in py_.flatten(df["true"].dropna().tolist() + df["pred"].dropna().tolist())]))
     filtered_entity_types = sorted(list(set(entity_types) - set(to_be_filtered)))
 
+    # including NaN here, because we want NaN vs other-entity/NaN for comparison as well.
     filtered_entity_df = df[df["true_ent_type"].isin(filtered_entity_types) | df["true_ent_type"].isna()]
     
     if not filtered_entity_df.empty:
@@ -293,12 +353,16 @@ def categorical_entity_report(true_labels: pd.DataFrame, pred_labels: pd.DataFra
             pred_ent = None if row["pred"] is None else row["pred"][0]
 
             if true_ent:
-                true_ent_type = true_ent["type"]
-                true_ent_value = true_ent["values"][0]["value"]
+                true_ent_type = true_ent["type"] # eg: product_kind
+                true_ent_value = true_ent["values"][0]["value"] # eg: credit_card
+
+                # we don't want to include entity types like `duration`, ordinal etc.
+                # that is why we imposing rule for them to custom entities which are called
+                # categorical.
                 if true_ent["values"][0]["type"] != "categorical":
                     continue
                 else:
-                    true_ent_value_mod = f"{true_ent_type}/{true_ent_value}"
+                    true_ent_value_mod = f"{true_ent_type}/{true_ent_value}" # eg: product_kind/credit_card
                     y_true.append(true_ent_value_mod)
 
             else:
@@ -322,9 +386,11 @@ def categorical_entity_report(true_labels: pd.DataFrame, pred_labels: pd.DataFra
     if y_true and y_pred:
         cls_report = classification_report(y_true, y_pred, output_dict=True, zero_division=0)
 
+        # nan is being replaced with `_`
         if "nan" in cls_report:
             cls_report["_"] = cls_report.pop("nan")
 
+        # we don't want "accuracy", "macro avg", "weighted avg"
         entries_to_remove = ("accuracy", "macro avg", "weighted avg")
         for entry_to_remove in entries_to_remove:
             cls_report.pop(entry_to_remove)
@@ -338,6 +404,13 @@ def categorical_entity_report(true_labels: pd.DataFrame, pred_labels: pd.DataFra
 
 
 def entity_report(true_labels: pd.DataFrame, pred_labels: pd.DataFrame, dump=False) -> pd.DataFrame:
+    """
+    given a true entity dataframe
+    along with pred entity dataframe, we can get
+    the False Positive Rate, False Negataive Rate, Mismatch Rate
+    for each of the entity types mentioned
+    in truth/prediction.
+    """
 
 
     df = pd.merge(true_labels, pred_labels, on="id", how="inner")
@@ -359,6 +432,7 @@ def entity_report(true_labels: pd.DataFrame, pred_labels: pd.DataFrame, dump=Fal
 
     dt_filtered_entity_types = list(filter(lambda x: x!="datetime", entity_types))
 
+    # for dump
     fp_error_idxs = []
     fn_error_idxs = []
     mm_errror_idxs = []
@@ -367,14 +441,34 @@ def entity_report(true_labels: pd.DataFrame, pred_labels: pd.DataFrame, dump=Fal
 
         # entity type df needs to consider `entity_type` in tp, fp, fn, mm in "entity_comp_results"
         entity_type_df = get_entity_df_by_ecr(df, entity_type)
+
+        # entity_support: entity's support refers to sitatuion where entity_type present in
+        # the true_labels dataframe.
         entity_support = 0
+
+        # entity_fp : entity_type prediction happened unexpectedly, 
+        # i.e., truth didn't have same
+        # entity type as prediction for that particular `id`
         entity_fp = 0
+
+        # entity_fn: entity_type prediction didn't happen even though it was expected
+        # i.e., prediction didn't have same
+        # entity type as truth for that particular `id`
         entity_fn = 0
+
+        # entity_tp: true and prediction entity type match
+        # and their values match as well.
         entity_tp = 0
+
+        # entity_mm: true and prediction entity type match
+        # but their values don't match.
         entity_mm = 0
 
         for entity_row_idx, row in entity_type_df.iterrows():
 
+            # situation of true negative (for entire df) where both true and prediction
+            # entity types are of `NaN` and `NaN` => no tagging and no predictions
+            # for that particular turn id, which results in ecr being None.
             if row["entity_comp_results"] is None:
                 continue
             else:
@@ -404,29 +498,37 @@ def entity_report(true_labels: pd.DataFrame, pred_labels: pd.DataFrame, dump=Fal
                 entity_mm += 1
                 mm_errror_idxs.append(entity_row_idx)
 
+        # we are trying to find true negatives for this particular entity type
+        # true negatives of entity type = remaining rows which don't have
+        # entity_type in true.
         entity_neg = df.shape[0] - entity_support
 
+        # fpr is defined as := fp/negatives
         if entity_neg == 0:
-            ent_fpr = 0.0
+            entity_fpr = 0.0
         else:
-            ent_fpr = entity_fp / entity_neg
+            entity_fpr = entity_fp / entity_neg
 
+        # fnr is defined as := fn / (fn + tp +mm)
+        # not to be confused with sklearn's fn / (fn + tp)
+        # since eevee's tp != sklearn's tp
         if (entity_fn + entity_tp + entity_mm) == 0:
-            ent_fnr = 0.0
+            entity_fnr = 0.0
         else:
-            ent_fnr = entity_fn / (entity_fn + entity_tp + entity_mm)
+            entity_fnr = entity_fn / (entity_fn + entity_tp + entity_mm)
         
+        # mm is defined as := mm / (tp + mm)
+        # rate of type-matched-but-value-mismatched for this entity
         if (entity_tp + entity_mm) == 0:
-            ent_mmr = 0.0
+            entity_mmr = 0.0
         else:
-            ent_mmr = entity_mm / (entity_tp + entity_mm)
-
+            entity_mmr = entity_mm / (entity_tp + entity_mm)
 
         report.append({
             "Entity": entity_type,
-            "FPR": ent_fpr,
-            "FNR": ent_fnr,
-            "Mismatch Rate": ent_mmr,
+            "FPR": entity_fpr,
+            "FNR": entity_fnr,
+            "Mismatch Rate": entity_mmr,
             "Support": entity_support,
             "Negatives": entity_neg
         })
@@ -436,6 +538,7 @@ def entity_report(true_labels: pd.DataFrame, pred_labels: pd.DataFrame, dump=Fal
     if not report.empty:
         report.set_index("Entity", inplace=True)
 
+        # dumps the .csv files for fp, fn, mm for deeper analysis.
         if dump:
             dump_error_reports(df, fp_error_idxs, fn_error_idxs, mm_errror_idxs)
 
