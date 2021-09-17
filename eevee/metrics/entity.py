@@ -39,6 +39,19 @@ class EntityComparisonResult:
     fn: Dict
     mm: Dict
 
+def dump_error_reports(df: pd.DataFrame, fp_error_idxs, fn_error_idxs, mm_errror_idxs):
+
+    df.drop(labels=["index", "true", "pred", "entity_comp_results"], axis=1, inplace=True)
+    df.rename(columns={"entities_x": "true_entities", "entities_y": "pred_entities"}, inplace=True)
+
+    fp_df = df.loc[df.index[fp_error_idxs]]
+    fn_df = df.loc[df.index[fn_error_idxs]]
+    mm_df = df.loc[df.index[mm_errror_idxs]]
+
+    fp_df.to_csv("./fp.csv", index=False)
+    fn_df.to_csv("./fn.csv", index=False)
+    mm_df.to_csv("./mm.csv", index=False)
+
 
 def are_generic_entity_type_and_value_equal(true_ent, pred_ent):
 
@@ -324,7 +337,7 @@ def categorical_entity_report(true_labels: pd.DataFrame, pred_labels: pd.DataFra
         return cat_report_df
 
 
-def entity_report(true_labels: pd.DataFrame, pred_labels: pd.DataFrame) -> pd.DataFrame:
+def entity_report(true_labels: pd.DataFrame, pred_labels: pd.DataFrame, dump=False) -> pd.DataFrame:
 
 
     df = pd.merge(true_labels, pred_labels, on="id", how="inner")
@@ -346,6 +359,10 @@ def entity_report(true_labels: pd.DataFrame, pred_labels: pd.DataFrame) -> pd.Da
 
     dt_filtered_entity_types = list(filter(lambda x: x!="datetime", entity_types))
 
+    fp_error_idxs = []
+    fn_error_idxs = []
+    mm_errror_idxs = []
+
     for entity_type in dt_filtered_entity_types:
 
         # entity type df needs to consider `entity_type` in tp, fp, fn, mm in "entity_comp_results"
@@ -356,7 +373,7 @@ def entity_report(true_labels: pd.DataFrame, pred_labels: pd.DataFrame) -> pd.Da
         entity_tp = 0
         entity_mm = 0
 
-        for _, row in entity_type_df.iterrows():
+        for entity_row_idx, row in entity_type_df.iterrows():
 
             if row["entity_comp_results"] is None:
                 continue
@@ -376,13 +393,16 @@ def entity_report(true_labels: pd.DataFrame, pred_labels: pd.DataFrame) -> pd.Da
             # false negative, we expected a prediction but didn't happen.
             if entity_type in ecr.fn:
                 entity_fn += 1
+                fn_error_idxs.append(entity_row_idx)
 
             # false positive, no prediction should have happened
             if entity_type in ecr.fp:
                 entity_fp += 1
+                fp_error_idxs.append(entity_row_idx)
 
             if entity_type in ecr.mm:
                 entity_mm += 1
+                mm_errror_idxs.append(entity_row_idx)
 
         entity_neg = df.shape[0] - entity_support
 
@@ -415,5 +435,8 @@ def entity_report(true_labels: pd.DataFrame, pred_labels: pd.DataFrame) -> pd.Da
 
     if not report.empty:
         report.set_index("Entity", inplace=True)
+
+        if dump:
+            dump_error_reports(df, fp_error_idxs, fn_error_idxs, mm_errror_idxs)
 
     return report
