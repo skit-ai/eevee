@@ -210,6 +210,30 @@ def test_datetime_time_eq(truth, pred, same):
             EntityComparisonResult(tp={}, fp={}, fn={"time": 1}, mm={"date": 1}),
         ),
 
+        # number-datetime
+        (
+            pd.DataFrame([[
+                [{'type': 'number', 'values': [{'value': 4, 'type': 'value'}]}],
+                [{'type': 'datetime', 'values': [{'value': '2019-04-22T17:00:00+05:30', 'type': 'value'}]}],
+                "number",
+                "datetime",
+            ]], columns=["true", "pred", "true_ent_type", "pred_ent_type"]).iloc[0]
+            , 
+            EntityComparisonResult(tp={}, fp={"date": 1, "time": 1}, fn={"number": 1}, mm={}),
+        ),
+
+        # datetime-number
+        (
+            pd.DataFrame([[
+                [{'type': 'datetime', 'values': [{'value': '2019-04-22T17:00:00+05:30', 'type': 'value'}]}],
+                [{'type': 'number', 'values': [{'value': 4, 'type': 'value'}]}],
+                "datetime",
+                "number",
+            ]], columns=["true", "pred", "true_ent_type", "pred_ent_type"]).iloc[0]
+            , 
+            EntityComparisonResult(tp={}, fp={"number": 1}, fn={"date": 1, "time": 1}, mm={}),
+        ),
+
     ],
 )
 def test_datetime_time_eq(row, ecr):
