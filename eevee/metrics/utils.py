@@ -1,10 +1,18 @@
-"""
-Common utilities for calculating metrics.
-"""
-
-from typing import Any, Tuple
+import json
+from typing import Tuple, Any
 
 from sklearn.metrics import confusion_matrix
+
+def parse_json_input(entity):
+
+    if isinstance(entity, str):
+        entity_list = json.loads(entity)
+        if entity_list:
+            for e in entity_list:
+                e["type"] = e["type"].lower()
+            return entity_list
+    return None
+
 
 
 def fpr_fnr(y_true, y_pred, labels: Tuple[Any, Any]) -> Tuple[Tuple[float, int], Tuple[float, int]]:
