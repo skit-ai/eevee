@@ -5,9 +5,7 @@ Common utilities for calculating metrics.
 from typing import Any, Tuple
 
 import pandas as pd
-import numpy as np
 from sklearn.metrics import confusion_matrix
-from sklearn.metrics import precision_recall_fscore_support
 
 
 
