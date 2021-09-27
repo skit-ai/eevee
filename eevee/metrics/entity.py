@@ -3,6 +3,7 @@ Entity comparison and reporting functions.
 """
 
 
+from eevee.metrics.utils import weighted_avg_dropna
 import json
 from dataclasses import dataclass
 from typing import Callable, Dict, Optional
@@ -408,6 +409,8 @@ def categorical_entity_report(true_labels: pd.DataFrame, pred_labels: pd.DataFra
         cat_report_df = cat_report_df[cat_report_df["support"] > 0]
         cat_report_df.sort_index(inplace=True)
         cat_report_df.index.name = "Categorical Entity"
+        cat_report_df = weighted_avg_dropna(cat_report_df)
+
         return cat_report_df
 
 
