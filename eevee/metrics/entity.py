@@ -3,8 +3,10 @@ Entity comparison and reporting functions.
 """
 
 
+
 from dataclasses import dataclass
 from typing import Callable, Dict, Optional
+import json
 
 import numpy as np
 import pandas as pd
@@ -16,6 +18,7 @@ import eevee.ord.entity.people as ord_people
 import eevee.ord.entity.number as ord_number
 
 import eevee.metrics.utils as eevee_utils
+from eevee.metrics.utils import weighted_avg_dropna
 
 # legacy plute.ord equality functions for entities
 # derived from : https://gitlab.com/vernacularai/ai/clients/plute/-/tree/master/plute/ord/entities
@@ -452,6 +455,8 @@ def categorical_entity_report(true_labels: pd.DataFrame, pred_labels: pd.DataFra
         cat_report_df = cat_report_df[cat_report_df["support"] > 0]
         cat_report_df.sort_index(inplace=True)
         cat_report_df.index.name = "Categorical Entity"
+        cat_report_df = weighted_avg_dropna(cat_report_df)
+
         return cat_report_df
 
 

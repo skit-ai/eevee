@@ -1,6 +1,7 @@
 import json
 from typing import Tuple, Any
 
+import pandas as pd
 from sklearn.metrics import confusion_matrix
 
 def parse_json_input(entity):
@@ -12,6 +13,7 @@ def parse_json_input(entity):
                 e["type"] = e["type"].lower()
             return entity_list
     return None
+
 
 
 
@@ -46,3 +48,25 @@ def fpr_fnr(y_true, y_pred, labels: Tuple[Any, Any]) -> Tuple[Tuple[float, int],
         fnr = 0
 
     return (fpr, total_neg), (fnr, total_pos)
+
+
+def weighted_avg_dropna(cat_report_df: pd.DataFrame):
+
+    wcat_df = cat_report_df.drop(index=["_"])
+
+    support_sum = wcat_df["support"].sum()
+
+    precision = (wcat_df["precision"] * wcat_df["support"]).sum() / support_sum
+    recall = (wcat_df["recall"] * wcat_df["support"]).sum() / support_sum
+    f1 = (wcat_df["f1-score"] * wcat_df["support"]).sum() / support_sum
+
+    wad = {}
+    wad["precision"] = precision
+    wad["recall"] = recall
+    wad["f1-score"] = f1
+    wad["support"] = support_sum
+
+    wad_df = pd.DataFrame(wad, index=["weighted average (excluding no_entity)"])
+
+    return pd.concat([cat_report_df, wad_df])
+        
