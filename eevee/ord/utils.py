@@ -36,25 +36,30 @@ def parse_datetime_objects(ent: Entity, to_date=False, to_time=False) -> List:
         return dt.hour == dt.minute == 0
 
     # NOTE: We assume there is no mixing of value type within an entity
-    value_type = ent["values"][0]["type"]
+
+    if isinstance(ent["value"], dict) and ("from" in ent["value"] or "to" in ent["value"]):
+        value_type = "interval"
+    else:
+        value_type = "value"
+
     if value_type == "value":
-        return [_parser(v["value"]) for v in ent["values"]]
+        return _parser(ent["value"])
     elif value_type == "interval":
         def _parse_interval_value(v):
-            from_dt = _parser(v["value"]["from"]) if "from" in v["value"] else None
-            to_dt = _parser(v["value"]["to"]) if "to" in v["value"] else None
+            from_dt = _parser(v["from"]["value"]) if "from" in v else None
+            to_dt = _parser(v["to"]["value"]) if "to" in v else None
 
             if to_date:
                 # In case we are parsing a date range, we need to consider the fact
                 # that parser gives to value for next day with time set to 00:00.
-                if from_dt and to_dt and (to_dt - from_dt).days == 1 and _is_midnight(v["value"]["to"]):
+                if from_dt and to_dt and (to_dt - from_dt).days == 1 and _is_midnight(v["to"]["value"]):
                     return (from_dt, from_dt)
                 else:
                     return (from_dt, to_dt)
 
             return (from_dt, to_dt)
 
-        return [_parse_interval_value(v) for v in ent["values"]]
+        return _parse_interval_value(ent["value"])
     else:
         raise ValueError(f"Unknown type {value_type} for the truth")
 

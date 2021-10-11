@@ -3,10 +3,10 @@ Entity comparison and reporting functions.
 """
 
 
-from eevee.metrics.utils import weighted_avg_dropna
-import json
+
 from dataclasses import dataclass
 from typing import Callable, Dict, Optional
+import json
 
 import numpy as np
 import pandas as pd
@@ -17,6 +17,8 @@ import eevee.ord.entity.datetime as ord_datetime
 import eevee.ord.entity.people as ord_people
 import eevee.ord.entity.number as ord_number
 
+import eevee.metrics.utils as eevee_utils
+from eevee.metrics.utils import weighted_avg_dropna
 
 # legacy plute.ord equality functions for entities
 # derived from : https://gitlab.com/vernacularai/ai/clients/plute/-/tree/master/plute/ord/entities
@@ -60,13 +62,58 @@ def dump_error_reports(df: pd.DataFrame, fp_error_idxs, fn_error_idxs, mm_errror
     mm_df.to_csv("./mm.csv", index=False)
 
 
+def check_interval_value_has_proper_python_types(interval_value):
+
+    interval_from_to_bools = []
+
+    if "from" in interval_value:
+        if isinstance(interval_value["from"]["value"], str):
+            interval_from_to_bools.append(True)
+        
+    if "to" in interval_value:
+        if isinstance(interval_value["to"]["value"], str):
+            interval_from_to_bools.append(True)
+
+    return bool(interval_from_to_bools and all(interval_from_to_bools))
+
+
+def check_if_entity_python_type_valid(entity_type, entity_value):
+
+    if entity_type in ["time", "date", "datetime"]:
+        if isinstance(entity_value, str):
+            return True
+        elif isinstance(entity_value, dict):
+            if "from" in entity_value or "to" in entity_value:
+                return check_interval_value_has_proper_python_types(entity_value)
+
+    elif entity_type in ["number", "people"]:
+        return isinstance(entity_value, int)
+    
+    return False
+
+
+
+
+def are_these_entity_values_of_good_type(true_ent, pred_ent):
+
+    true_ent_type = true_ent["type"]
+    true_ent_value = true_ent["value"]
+    true_ent_check = check_if_entity_python_type_valid(true_ent_type, true_ent_value)
+
+    pred_ent_type = pred_ent["type"]
+    pred_ent_value = pred_ent["value"]
+    pred_ent_check = check_if_entity_python_type_valid(pred_ent_type, pred_ent_value)
+
+    return true_ent_check and pred_ent_check
+
+
 def are_generic_entity_type_and_value_equal(true_ent, pred_ent):
     """
     checks values for two given entities are same or not.
     """
 
-    true_ent_value = true_ent["values"][0]["value"]
-    pred_ent_value = pred_ent["values"][0]["value"]
+    true_ent_value = true_ent["value"]
+    pred_ent_value = pred_ent["value"]
     return true_ent_value == pred_ent_value
 
 
@@ -122,11 +169,12 @@ def compare_datetime_special_entities(row) -> Optional[EntityComparisonResult]:
     if true_ent is None and pred_ent is None:
         return None
 
-    pred_ent_type = row["pred_ent_type"]
     true_ent_type = row["true_ent_type"]
+    pred_ent_type = row["pred_ent_type"]
 
     # when both truth and predicted entities are datetime
-    if true_ent_type == "datetime" and pred_ent_type == "datetime":
+    if true_ent_type == "datetime" and pred_ent_type == "datetime" and \
+        (are_these_entity_values_of_good_type(true_ent, pred_ent)):
 
         # we have to compare both their dates & times separately
         # and act accordingly with date/time's tp/fp/fn/mm
@@ -143,8 +191,9 @@ def compare_datetime_special_entities(row) -> Optional[EntityComparisonResult]:
                 mm[dtt] = 1
 
 
-    elif true_ent_type == "datetime":
-        
+    elif true_ent_type == "datetime" and \
+        check_if_entity_python_type_valid(true_ent["type"], true_ent["value"],):
+
         # situation where truth is datetime,
         # but prediction is either time/date
         if pred_ent_type in ["time", "date"]:
@@ -175,7 +224,8 @@ def compare_datetime_special_entities(row) -> Optional[EntityComparisonResult]:
             if pred_ent is not None:
                 fp[pred_ent_type] = 1
     
-    elif pred_ent_type == "datetime":
+    elif pred_ent_type == "datetime" and \
+        check_if_entity_python_type_valid(pred_ent["type"], pred_ent["value"]):
 
         # situation where prediction is datetime,
         # but truth is either time/date
@@ -259,7 +309,7 @@ def compare_row_level_entities(row) -> Optional[EntityComparisonResult]:
     if are_these_types_equal(true_ent_type, pred_ent_type):
         # type matched here
         
-        if true_ent_type in ENTITY_EQ_FNS:
+        if true_ent_type in ENTITY_EQ_FNS and are_these_entity_values_of_good_type(true_ent, pred_ent):
             eq_fn_for_this_entity : Callable = ENTITY_EQ_FNS[true_ent_type]
             is_this_entity_type_value_equal = eq_fn_for_this_entity(true_ent, pred_ent)
         else:
@@ -332,8 +382,8 @@ def get_entity_df_by_ecr(df: pd.DataFrame, entity_type: str):
 def categorical_entity_report(true_labels: pd.DataFrame, pred_labels: pd.DataFrame) -> Optional[pd.DataFrame]:
 
     df = pd.merge(true_labels, pred_labels, on="id", how="inner")
-    df["true"] = df["entities_x"].apply(lambda it: json.loads(it) if isinstance(it, str) else None)
-    df["pred"] = df["entities_y"].apply(lambda it: json.loads(it) if isinstance(it, str) else None)
+    df["true"] = df["entities_x"].apply(eevee_utils.parse_json_input)
+    df["pred"] = df["entities_y"].apply(eevee_utils.parse_json_input)
 
     # assuming there will be only one entity type and value 
     df["true_ent_type"] = df["true"].apply(lambda it: it[0].get("type") if it else None)
@@ -363,16 +413,13 @@ def categorical_entity_report(true_labels: pd.DataFrame, pred_labels: pd.DataFra
 
             if true_ent:
                 true_ent_type = true_ent["type"] # eg: product_kind
-                true_ent_value = true_ent["values"][0]["value"] # eg: credit_card
+                true_ent_value = true_ent["value"] # eg: credit_card
 
                 # we don't want to include entity types like `duration`, ordinal etc.
                 # that is why we imposing rule for them to custom entities which are called
                 # categorical.
-                if true_ent["values"][0]["type"] != "categorical":
-                    continue
-                else:
-                    true_ent_value_mod = f"{true_ent_type}/{true_ent_value}" # eg: product_kind/credit_card
-                    y_true.append(true_ent_value_mod)
+                true_ent_value_mod = f"{true_ent_type}/{true_ent_value}" # eg: product_kind/credit_card
+                y_true.append(true_ent_value_mod)
 
             else:
                 y_true.append(np.nan) # for None/no_entity present
@@ -380,19 +427,18 @@ def categorical_entity_report(true_labels: pd.DataFrame, pred_labels: pd.DataFra
 
             if pred_ent:
                 pred_ent_type = pred_ent["type"]
-                pred_ent_value = pred_ent["values"][0]["value"]
+                pred_ent_value = pred_ent["value"]
 
-                if pred_ent["values"][0]["type"] == "categorical":
-                    pred_ent_value_mod = f"{pred_ent_type}/{pred_ent_value}"
-                    y_pred.append(pred_ent_value_mod)
-                else:
-                    y_pred.append(pred_ent_value)
+                pred_ent_value_mod = f"{pred_ent_type}/{pred_ent_value}"
+                y_pred.append(pred_ent_value_mod)
 
             else:
                 y_pred.append(np.nan) # for None/no_entity being predicted
 
+    unique_pred_truths = set(y_true).union(set(y_pred))
 
-    if y_true and y_pred:
+    if (y_true and y_pred) and \
+        (not (len(unique_pred_truths) == 1 and np.nan in unique_pred_truths)):
         cls_report = classification_report(y_true, y_pred, output_dict=True, zero_division=0)
 
         # nan is being replaced with `_`
@@ -425,12 +471,12 @@ def entity_report(true_labels: pd.DataFrame, pred_labels: pd.DataFrame, dump=Fal
 
 
     df = pd.merge(true_labels, pred_labels, on="id", how="inner")
-    df["true"] = df["entities_x"].apply(lambda it: json.loads(it) if isinstance(it, str) else None)
-    df["pred"] = df["entities_y"].apply(lambda it: json.loads(it) if isinstance(it, str) else None)
+    df["true"] = df["entities_x"].apply(eevee_utils.parse_json_input)
+    df["pred"] = df["entities_y"].apply(eevee_utils.parse_json_input)
 
     # assuming there will be only one entity type and value 
-    df["true_ent_type"] = df["true"].apply(lambda it: it[0].get("type") if it else None)
-    df["pred_ent_type"] = df["pred"].apply(lambda it: it[0].get("type") if it else None)
+    df["true_ent_type"] = df["true"].apply(lambda it: it[0]["type"] if it else None)
+    df["pred_ent_type"] = df["pred"].apply(lambda it: it[0]["type"] if it else None)
 
     df.reset_index(inplace=True)
 
