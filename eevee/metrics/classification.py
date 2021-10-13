@@ -6,16 +6,27 @@ import yaml
 from sklearn.metrics import classification_report
 
 
-def process_yaml(alias_yaml) -> Dict:
+def process_yaml(alias_yaml, unique_intents) -> Dict:
 
     with open(alias_yaml, "r") as fp:
         loaded_yaml = yaml.safe_load(fp)
     
     aliasing_dict = {}
 
+    given_intents = set()
+
     for aliased_intent, tagged_intents in loaded_yaml.items():
+
+        given_intents.update(tagged_intents)
         for tagged_intent in tagged_intents:
             aliasing_dict[tagged_intent] = aliased_intent
+
+    remaining_intents = unique_intents - given_intents
+    if remaining_intents:
+        print(f":: [WARN] {remaining_intents} are being considered as `other_intents`.")
+
+    for rem_intent in remaining_intents:
+        aliasing_dict[rem_intent] = "other_intents"
 
     return aliasing_dict
 
@@ -37,7 +48,10 @@ def intent_report(
     df = pd.merge(true_labels, pred_labels, on="id", how="inner")
 
     if breakdown and alias_yaml is not None:
-        alias = process_yaml(alias_yaml)
+
+        unique_intents = set(df["intent_x"].unique()).union(set(df["intent_y"].unique()))
+        alias = process_yaml(alias_yaml, unique_intents)
+        
         df["intent_x"] = df["intent_x"].replace(alias)
         df["intent_y"] = df["intent_y"].replace(alias)
 
