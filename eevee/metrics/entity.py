@@ -301,7 +301,6 @@ def compare_row_level_entities(row) -> Optional[EntityComparisonResult]:
 
     # special case handling where one entity is `datetime`
     if "datetime" in [true_ent_type, pred_ent_type]:
-        print(true_ent, pred_ent)
         ecr = compare_datetime_special_entities(row)
         return ecr
 
