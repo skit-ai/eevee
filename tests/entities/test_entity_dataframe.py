@@ -355,8 +355,14 @@ def test_dfs():
                 "f1-score": 1/2,
                 "support": 3,
             },
+            { 
+                "precision": 1.0,
+                "recall": 1/3,
+                "f1-score": 1/2,
+                "support": 3,
+            },
         ]
-    , index=["_", "product_kind/credit_card"])
+    , index=["_", "product_kind/credit_card", "weighted average (excluding no_entity)"])
 
     print("cat entity report")
     print(cat_report_df)
