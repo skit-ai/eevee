@@ -6,7 +6,6 @@ Entity comparison and reporting functions.
 
 from dataclasses import dataclass
 from typing import Callable, Dict, Optional
-import json
 
 import numpy as np
 import pandas as pd
@@ -302,6 +301,7 @@ def compare_row_level_entities(row) -> Optional[EntityComparisonResult]:
 
     # special case handling where one entity is `datetime`
     if "datetime" in [true_ent_type, pred_ent_type]:
+        print(true_ent, pred_ent)
         ecr = compare_datetime_special_entities(row)
         return ecr
 
