@@ -1,0 +1,33 @@
+smalltalk:
+  - _greeting_
+  - _repeat_
+  - what
+  - hmm
+  - _confirm_
+  - _cancel_
+
+oos:
+  - _oos_
+  - _ood_
+
+in_scope_intents:
+  - booking_cancellation
+  - booking_modification
+  - booking_status
+  - cancel_charges
+  - checkin_procedure
+  - checkin_time
+  - early_checkin
+  - late_checkout
+  - location_information
+  - new_booking
+  - price_enquiry
+  - refund_status
+  - request_agent
+
+# acoustic_oos:
+#   - audio_silent_background_talking
+#   - audio_silent
+#   - broken_voice
+#   - short_utterance
+#   - audio_noisy
