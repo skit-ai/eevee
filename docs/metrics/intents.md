@@ -12,10 +12,10 @@ metrics_ (precision, recall, f1) for intents. We tag these data points using tog
 
 ## Data Schema
 
-We expect the csv(s) to have `id` and `intents` columns. They will be inner-joined on `id`. 
+We expect the csv(s) to have `id` and `intent` columns. They will be inner-joined on `id`. 
 
 `id` is expected from the user to be unique.
-`intents` column should have values whch are of `str` type.
+`intent` column should have values whch are of `str` type.
 
 ## Usage
 
@@ -35,7 +35,7 @@ there is another feature, `alias`-ing
 eevee intent ./true-labels.csv ./pred-labels.csv --alias-yaml=data/alias.yaml
 ```
 
-This helps with aliasing/grouping intents as their respective group:
+This helps with aliasing/grouping intents as their edtrespective group:
 
 In the sample file `alias.yaml` under `data` directory, we have intents (from the `true-labels.csv` and `pred-labels.csv`) grouped under:
 * smalltalk
