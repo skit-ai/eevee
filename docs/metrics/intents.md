@@ -6,10 +6,16 @@ nav_order: 1
 ---
 
 # Intents
-`TODO`
+
+Eevee let's you calculate all the important _turn level
+metrics_ (precision, recall, f1) for intents. We tag these data points using tog, an internal tool
 
 ## Data Schema
-`TODO`
+
+We expect the csv(s) to have `id` and `intents` columns. They will be inner-joined on `id`. 
+
+`id` is expected from the user to be unique.
+`intents` column should have values whch are of `str` type.
 
 ## Usage
 
