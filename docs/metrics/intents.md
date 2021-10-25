@@ -82,7 +82,7 @@ using tools like `jq`.
                       macro avg       1.00      1.00      1.00      1035
                    weighted avg       1.00      1.00      1.00      1035
 
->>> all_intents_classification_report_dict = intent_report(true_df, pred_df, output_dict=True)
+>>> all_intents_classification_report_dict = intent_report(true_df, pred_df, return_output_as_dict=True)
 >>> print(all_intents_classification_report_dict)
 {
     '_cancel_': {'precision': 1.0, 'recall': 1.0, 'f1-score': 1.0, 'support': 100}, 

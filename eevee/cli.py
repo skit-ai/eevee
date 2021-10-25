@@ -41,27 +41,27 @@ def main():
 
         breakdown = True if args["--breakdown"] else False
         alias_yaml = args["--alias-yaml"]
-        output_dict = False
+        return_output_as_dict = False
         intent_groups = None
 
         if alias_yaml:
             intent_groups = parse_yaml(alias_yaml)
 
-        if args["--json"]:
-            output_dict = True
+        if args["--json"] or breakdown:
+            return_output_as_dict = True
 
         output = intent_report(
             true_labels,
             pred_labels,
-            output_dict=output_dict,
+            return_output_as_dict=return_output_as_dict,
             intent_groups=intent_groups,
             breakdown=breakdown,
         )
             
-        # output can be str when output_dict=False, intent_groups is None and breakdown=False
-        # output can be dict when output_dict=True (intent_groups can be present or absent)
+        # output can be str when return_output_as_dict=False, intent_groups is None and breakdown=False
+        # output can be dict when return_output_as_dict=True (intent_groups can be present or absent)
             # can be dict of dict, or dict of str, pd.DataFrames
-        # output can be pd.DataFrame when output_dict=False, intent_groups is present and breakdown=False            
+        # output can be pd.DataFrame when return_output_as_dict=False, intent_groups is present and breakdown=False            
 
         if args["--json"]:
 
@@ -69,11 +69,11 @@ def main():
             # output : Dict[str, pd.DataFrame] -> output : Dict[str, Dict[str, Dict]]
             if alias_yaml is not None and isinstance(output, dict):
                 for alias_intent, group_intent_metrics_df in output.items():
-                    output[alias_intent] = group_intent_metrics_df.to_dict('index')
+                    output[alias_intent] = group_intent_metrics_df.to_dict("index")
 
             # grouping is present but no breakdown
             elif isinstance(output, pd.DataFrame):
-                output = output.to_dict('index')
+                output = output.to_dict("index")
 
             output = json.dumps(output, indent=2)
 

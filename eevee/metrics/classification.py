@@ -1,14 +1,13 @@
 from typing import Any, Dict, List, Optional, Set, Union
 
 import pandas as pd
-from sklearn.metrics import classification_report
-from eevee.metrics.utils import convert_classification_report_dict_into_dataframe, weighted_avg_of_labels
+from sklearn.metrics import classification_report, precision_recall_fscore_support
 
 
 def intent_report(
     true_labels: pd.DataFrame,
     pred_labels: pd.DataFrame,
-    output_dict=False,
+    return_output_as_dict : bool=False,
     intent_groups: Optional[Dict[str, List[str]]]=None,
     breakdown=False,
 ):
@@ -16,21 +15,21 @@ def intent_report(
     df = pd.merge(true_labels, pred_labels, on="id", how="inner")
 
     # vanilla case, where just ordinary classification report is required.
-    # it goes out as str or dict, depending on `output_dict`
+    # it goes out as str or dict, depending on `return_output_as_dict`
     if intent_groups is None and not breakdown:
 
         return classification_report(
-        df["intent_x"], df["intent_y"], output_dict=output_dict, zero_division=0
+        df["intent_x"], df["intent_y"], output_dict=return_output_as_dict, zero_division=0
         )
 
     # grouping is required
     # to give out pd.DataFrame or Dict[str, pd.DataFrame] only in case of grouping.
     if intent_groups is not None:
 
-        unique_intents = set(df["intent_x"].unique()).union(set(df["intent_y"].unique()))
+        unique_intents = set(df["intent_x"]).union(set(df["intent_y"]))
         given_intents = set()
 
-        for _, tagged_intents in intent_groups.items():
+        for tagged_intents in intent_groups.values():
             given_intents.update(tagged_intents)
 
         inscope_intents = unique_intents - given_intents
@@ -44,9 +43,9 @@ def intent_report(
             for alias_intent, tagged_intents in intent_groups.items():
 
                 group_classification_report = classification_report(
-                    df["intent_x"], df["intent_y"], output_dict=True, zero_division=0, labels=tagged_intents
+                    df["intent_x"], df["intent_y"], output_dict=return_output_as_dict, zero_division=0, labels=tagged_intents
                 )
-                group_classification_report_df = convert_classification_report_dict_into_dataframe(group_classification_report)
+                group_classification_report_df = pd.DataFrame(group_classification_report).transpose()
                 group_classification_report_df["support"] = group_classification_report_df["support"].astype('int32')
                 grouped_classification_reports[alias_intent] = group_classification_report_df
 
@@ -55,11 +54,16 @@ def intent_report(
         # where each intent group just requires weighted average of precision, recall, f1, support
         else:
 
-            weighted_group_intents_numbers : Dict[str, Any] = []
+            weighted_group_intents_numbers : List[Dict] = []
 
             for alias_intent, tagged_intents in intent_groups.items():
 
-                p, r, f, _ = weighted_avg_of_labels(df["intent_x"], df["intent_y"], labels=tagged_intents)
+                p, r, f, _ = precision_recall_fscore_support(
+                                    df["intent_x"], df["intent_y"], 
+                                    labels=tagged_intents, zero_division=0, 
+                                    average="weighted"
+                                    )
+
 
                 # since support is None, on average='weighted' on precision_recall_fscore_support
                 support = df["intent_x"].isin(tagged_intents).sum()
@@ -77,6 +81,3 @@ def intent_report(
             weighted_group_df.set_index('group', inplace=True)
             
             return weighted_group_df
-
-
-
