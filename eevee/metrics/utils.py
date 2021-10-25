@@ -3,6 +3,7 @@ from typing import Tuple, Any
 
 import pandas as pd
 from sklearn.metrics import confusion_matrix
+from sklearn.metrics import precision_recall_fscore_support
 
 def parse_json_input(entity):
 
@@ -70,3 +71,14 @@ def weighted_avg_dropna(cat_report_df: pd.DataFrame):
 
     return pd.concat([cat_report_df, wad_df])
         
+
+def weighted_avg_of_labels(y_true, y_pred, labels):
+
+    p, r, f, s = precision_recall_fscore_support(y_true, y_pred, labels=labels, zero_division=0, average="weighted")
+    return p, r, f, s
+
+
+def convert_classification_report_dict_into_dataframe(classification_report):
+
+    df_classification_report = pd.DataFrame(classification_report).transpose()
+    return df_classification_report

@@ -2,7 +2,7 @@
 eevee
 
 Usage:
-  eevee intent <true-labels> <pred-labels> [--json] [--alias-yaml=<alias_yaml_path>]
+  eevee intent <true-labels> <pred-labels> [--json] [--alias-yaml=<alias_yaml_path>] [--breakdown]
   eevee asr <true-labels> <pred-labels> [--json]
   eevee entity <true-labels> <pred-labels> [--json] [--breakdown] [--dump]
 
@@ -29,6 +29,7 @@ from eevee import __version__
 from eevee.metrics import intent_report
 from eevee.metrics.asr import asr_report
 from eevee.metrics.entity import categorical_entity_report, entity_report
+from eevee.utils import parse_yaml
 
 
 def main():
@@ -40,22 +41,57 @@ def main():
 
         breakdown = True if args["--breakdown"] else False
         alias_yaml = args["--alias-yaml"]
+        output_dict = False
+        intent_groups = None
+
+        if alias_yaml:
+            intent_groups = parse_yaml(alias_yaml)
 
         if args["--json"]:
-            output = intent_report(
-                true_labels,
-                pred_labels,
-                output_dict=True,
-                breakdown=breakdown,
-                alias_yaml=alias_yaml,
-            )
-            output = json.dumps(output, indent=2)
-        else:
-            output = intent_report(
-                true_labels, pred_labels, alias_yaml=alias_yaml
-            )
+            output_dict = True
 
-        print(output)
+        output = intent_report(
+            true_labels,
+            pred_labels,
+            output_dict=output_dict,
+            intent_groups=intent_groups,
+            breakdown=breakdown,
+        )
+            
+        # output can be str when output_dict=False, intent_groups is None and breakdown=False
+        # output can be dict when output_dict=True (intent_groups can be present or absent)
+            # can be dict of dict, or dict of str, pd.DataFrames
+        # output can be pd.DataFrame when output_dict=False, intent_groups is present and breakdown=False            
+
+        if args["--json"]:
+
+            # grouping is present and breakdown is asked for
+            # output : Dict[str, pd.DataFrame] -> output : Dict[str, Dict[str, Dict]]
+            if alias_yaml is not None and isinstance(output, dict):
+                for alias_intent, group_intent_metrics_df in output.items():
+                    output[alias_intent] = group_intent_metrics_df.to_dict('index')
+
+            # grouping is present but no breakdown
+            elif isinstance(output, pd.DataFrame):
+                output = output.to_dict('index')
+
+            output = json.dumps(output, indent=2)
+
+            print(output)
+
+        else:
+
+            # when alias.yaml is given, and one expects a breakdown of group's classification
+            # report as per each group
+            if alias_yaml is not None and breakdown:
+                # output : Dict[str, pd.DataFrame]
+                for alias_intent, group_intent_metrics_df in output.items():
+                    print("\n")
+                    print("group :", alias_intent)
+                    print(group_intent_metrics_df)
+
+            else:
+                print(output)
 
     elif args["asr"]:
         true_labels = pd.read_csv(args["<true-labels>"])
