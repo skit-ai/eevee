@@ -3,6 +3,7 @@ from typing import Tuple, Any
 
 import pandas as pd
 from sklearn.metrics import confusion_matrix
+from sklearn.metrics import precision_recall_fscore_support
 
 def parse_json_input(entity):
 
@@ -69,4 +70,3 @@ def weighted_avg_dropna(cat_report_df: pd.DataFrame):
     wad_df = pd.DataFrame(wad, index=["weighted average (excluding no_entity)"])
 
     return pd.concat([cat_report_df, wad_df])
-        
