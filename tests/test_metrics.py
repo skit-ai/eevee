@@ -120,7 +120,7 @@ def test_intents(y_true, y_pred, macro_f1):
     report = intent_report(
         true_labels,
         pred_labels,
-        output_dict=True,
+        return_output_as_dict=True,
     )
 
     assert report["macro avg"]["f1-score"] == macro_f1
