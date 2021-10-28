@@ -434,10 +434,10 @@ def categorical_entity_report(true_labels: pd.DataFrame, pred_labels: pd.DataFra
             else:
                 y_pred.append(np.nan) # for None/no_entity being predicted
 
-    unique_pred_truths = set(y_true).union(set(y_pred))
 
     if (y_true and y_pred) and \
-        (not (len(unique_pred_truths) == 1 and np.nan in unique_pred_truths)):
+        ((set([np.nan]) != set(y_true)) and (set([np.nan]) != set(y_pred))):
+
         cls_report = classification_report(y_true, y_pred, output_dict=True, zero_division=0)
 
         # nan is being replaced with `_`
