@@ -1,0 +1,16 @@
+smalltalk:
+  - _greeting_
+  - _repeat_
+  - what
+  - hmm
+  - _confirm_
+  - _cancel_
+
+oos:
+  - _oos_
+  - _ood_
+  - audio_silent_background_talking
+  - audio_silent
+  - broken_voice
+  - short_utterance
+  - audio_noisy

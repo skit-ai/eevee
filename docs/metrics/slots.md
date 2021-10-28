@@ -35,54 +35,25 @@ either `true-labels.csv` or `pred-labels.csv` should have rows like these:
 
 ```
 id, entities
-1, '[{"type": "date", "values": [{"value": "2019-04-21T00:00:00+05:30", "type": "value"}]}]'
-2, '[{"text": "6th evening", "type": "time", "values": [{"type": "interval", "value": {"from": "2021-08-06T18:00:00.000-07:00", "to": "2021-08-07T00:00:00.000-07:00"}}]}]'
-3, 
-4, '[{"text": "67", "type": "number", "values": [{"type": "value", "value": 67}]}]'
-5, '[{"text": "want credit card", "type": "product_kind", "values": [{"type": "categorical", "value": "credit_card"}]}]'
+1,"[{""text"": ""24 अक्टूबर"", ""type"": ""date"", ""score"": 0, ""value"": ""2021-10-24T00:00:00.000+05:30""}]"
+2,"[{""text"": ""now"", ""type"": ""datetime"", ""score"": 0, ""value"": ""2021-10-14T13:35:17.354+05:30""}]"
+3, []
+4,"[{""text"":""21"",""type"":""number"",""score"":1,""value"":21}]"
+5,"[{""text"":""Mira Road"",""type"":""location"",""score"":0,""value"":""mira road""}]"
+6,"[{""text"":""पांच से सात"",""type"":""datetime"",""score"":0.3,""value"":{""from"":{""grain"":""hour"",""value"":""2021-10-14T05:00:00.000+05:30""},""to"":{""grain"":""hour"",""value"":""2021-10-14T08:00:00.000+05:30""},""type"":""interval""}}]"
 ```
 
-the `entities` are in `JSON` format. 
+the `entities` are in `JSON` format. The above ones are just few samples to demonstrate the example.
 
-exact schema of entity looks like this:
+It is important to note that the csv(s) should contain columns called `id` and `entities`, as the `entities` will be merged on the common `id`. Therefore `id` is expected to be unique.
 
-for ordinary `value` or `categorical` types:
 
-```
-[
-    {
-        "type": "entity_type", # date, time, datetime, number, people, product_kind, etc...
-        "values": [
-            {
-                "value": "entity_value", # "2019-04-21T00:00:00+05:30", 42, credit_card, etc
-                "type": "entity_value_type", # "type" or "categorical"
-            }
-        ]
-    }
-]
-```
-
-for `interval` value type:
-
-```
-[
-    {
-        "type": "entity_type", # date, time, datetime only
-        "values": [
-            {
-                # it is fine, if you have either of `from` or `to`, better if you have both.
-                "value": {"from": "...", "to": "..."},
-                "type": "interval",
-            }
-        ]
-    }
-]
-```
+We expect `type` and `value` to be never `null`. We also expect `value` is of appropriate python-datatype. Eg: `type` of `date`, we expect `value` to be an ISO string like `"2021-10-24T00:00:00.000+05:30"` instead of `24` (an `integer`).
 
 
 Three important things to note:
-* we require only entity's `type`, `values` for calculating the `entity_report`, the `body` / `text` or any other key is not required as of now.
-* if no-prediction / no-annotation has been made for that particular entity leave it blank, pandas will parse it as `NaN`, accordingly it'll be processed as false negative / false positive.
+* we require only entity's `type`, `value` for calculating the `entity_report`, the `body` / `text` or any other key is not required as of now.
+* if no-prediction / no-annotation has been made for that particular entity leave it blank or [], pandas will parse it as `NaN`, accordingly it'll be processed as false negative / false positive.
 * Right now, we only support only one `value`, meaning we compare truth and prediction only on the first duckling prediction. Implies our comparisons right now for entities looks likes: `[{}]` vs `[{}]`, in future we'd be supporting `[{}, {}]` vs `[{}, {}, {}, {}, {}]`
 
 ## Usage
@@ -95,56 +66,54 @@ below:
  eevee entity ./true-labels.csv ./pred-labels.csv
 ```
 
-on standard entities like `date`, `time`, `datetime`, `number` etc ..
-```
-               FPR      FNR  Mismatch Rate  Support  Negatives
-Entity                                                        
-duration  0.004854  0.00000       0.000000        0        618
-number    0.070033  0.00000       0.500000        4        614
-ordinal   0.006515  1.00000       0.000000        4        614
-time      0.016822  0.13253       0.055556       83        535
-```
-
-on categorical custom entities from clients ...
 
 ```
-                   FPR       FNR  Mismatch Rate  Support  Negatives
-Entity                                                             
-actions       0.004848  0.294118       0.000000       17      14025
-form_type     0.000997  0.500000       0.000000        6      14036
-language      0.001567  0.000000       0.000000        0      14042
-method_type   0.000071  1.000000       0.000000        8      14034
-product_kind  0.041297  0.141987       0.076258     3775      10267
+                  FPR       FNR  Mismatch Rate  Support  Negatives
+Entity                                                            
+date         0.081612  0.086466       0.377715     6199      18588
+detail_kind  0.009233  0.840325       0.013018     5292      19495
+duration     0.000444  0.750000       0.000000       36      24751
+location     0.004438  0.153505       0.854647     3381      21406
+number       0.052483  0.636291       0.286652     2513      22274
+time         0.046771  0.098007       0.034070     1204      23583
 ```
+
+The above numbers are a mix of standard entities like `date`, `time`, `number` etc but also has tagged categorical entities like `location`,  `detail_kind` etc.
+
 
 only on categorical entities we can get extra `breakdown` (pass `--breakdown` flag), which will report entity mismatches on their categorical values, example:
 
 ```
-$ eevee entity data/cat_tog999.tagged.entities.csv data/cat_tog999.predicted.entities.csv --breakdown
+$ eevee entity data/oyo-hi-datetime-truth-entities.csv data/oyo-hi-datetime-class9-entities.csv --breakdown
 
-                             precision    recall  f1-score  support
-Categorical Entity                                                 
-_                             0.949898  0.952032  0.950964    10236
-actions/change                0.063492  0.666667  0.115942        6
-actions/increase              0.470588  0.727273  0.571429       11
-form_type/form                0.125000  0.500000  0.200000        4
-form_type/request_form        1.000000  0.500000  0.666667        2
-method_type/digital_payment   0.000000  0.000000  0.000000        8
-product_kind/bank_account     0.797897  0.868957  0.831912      786
-product_kind/card             0.240000  0.821918  0.371517       73
-product_kind/cheque_book      0.848485  0.823529  0.835821       34
-product_kind/credit_card      0.915548  0.797370  0.852382     2053
-product_kind/debit_card       0.877686  0.713710  0.787250      744
-product_kind/imps             1.000000  1.000000  1.000000        1
-product_kind/mobile_banking   0.444444  0.571429  0.500000        7
-product_kind/neft             1.000000  0.333333  0.500000        3
-product_kind/net_banking      0.311828  0.725000  0.436090       40
-product_kind/upi              0.857143  0.529412  0.654545       34
+                                        precision    recall  f1-score  support
+_                                        0.604215  0.849747  0.706250     7321
+detail_kind/check_in_date                0.952381  0.909091  0.930233       44
+detail_kind/check_out_date               0.906250  0.906250  0.906250       32
+detail_kind/city                         0.380282  0.551020  0.450000       49
+detail_kind/english                      0.250000  0.023622  0.043165      127
+...                                           ...       ...       ...      ...
+location/yelagiri                        0.000000  0.000000  0.000000        1
+location/yelahanka                       0.000000  0.000000  0.000000        1
+location/zirakpur                        0.000000  0.000000  0.000000        3
+weighted average (excluding no_entity)   0.148283  0.144563  0.144732     8709
 ```
 
 where `_` represents `NaN` vs `NaN` comparisons. this helps with understanding when it comes to misfiring on no-entities.
+Also the last row being `weighted average (excluding no_entity)` helps in giving overall weighted average metrics on these categorical entities.
 
 ### Python module
+
+
+The `entity_report` and `categorical_entity_report` can be imported using 
+
+```python
+from eevee.metrics.entity import entity_report, categorical_entity_report
+```
+
+they take true and pred dataframes as input, just like the CLI version.
+
+
 A common usage pattern for ML modeling is to use entity comparison functions
 from `eevee.ord.entity` module.
 
@@ -153,13 +122,16 @@ A demonstration on how to use `date_eq` and `time_eq`:
 ```python
 >>> from eevee.ord.entity.datetime import date_eq, time_eq
 >>>
->>> true_date = {'type': 'date', 'values': [{'value': '2019-04-21T00:00:00+05:30', 'type': 'value'}]}
->>> pred_date = {'type': 'date', 'values': [{'value': '2019-04-21T00:00:00+05:30', 'type': 'value'}]}
+>>> true_date = {'type': 'date', 'value': '2019-04-21T00:00:00+05:30'}
+>>> pred_date = {'type': 'date', 'value': '2019-04-21T00:00:00+05:30'}
+>>> 
 >>> date_eq(true_date, pred_date)
 True
 
->>> true_time = {'type': 'time', 'values': [{'value': '2019-04-21T09:00:00+05:30', 'type': 'value'}]}
->>> pred_time = {'type': 'time', 'values': [{'value': '2019-04-21T00:00:00+05:30', 'type': 'value'}]}
+>>> true_time = {'type': 'time', 'value': '2019-04-21T00:11:00+05:30'}
+>>> pred_time = {'type': 'time', 'value': '2019-04-17T00:11:00+05:30'}
+>>> 
 >>> time_eq(true_time, pred_time)
-False
+True
+
 ```

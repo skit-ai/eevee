@@ -15,9 +15,9 @@ def eq(a: Entity, b: Entity, match_units=False) -> bool:
     """
 
     if match_units:
-        return a["values"] == b["values"]
+        return a["value"] == b["value"]
     else:
-        return a["values"][0]["value"] == b["values"][0]["value"]
+        return a["value"] == b["value"]
 
 
 def eq_lists(truth: List[Entity], pred: List[Entity]) -> bool:

@@ -85,9 +85,6 @@ def date_eq(truth: Entity, pred: Entity) -> bool:
     true_dates = parse_datetime_objects(truth, to_date=True)
     pred_dates = parse_datetime_objects(pred, to_date=True)
 
-    if len(true_dates) != len(pred_dates):
-        return False
-
     def _same_date(x, y) -> Optional[bool]:
         if x and y:
             if x == y:
@@ -118,9 +115,8 @@ def date_eq(truth: Entity, pred: Entity) -> bool:
             else:
                 return td == pd
 
-    for td, pd in zip(true_dates, pred_dates):
-        if not _match(td, pd):
-            return False
+    if not _match(true_dates, pred_dates):
+        return False
 
     return True
 
