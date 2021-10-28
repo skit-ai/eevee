@@ -120,3 +120,16 @@ def main():
             print(output.to_json(indent=2))
         else:
             print(output)
+
+
+            # TODO: handle really large reports
+            # if isinstance(output, pd.DataFrame):
+
+            #     with pd.option_context(
+            #         'display.max_rows', None, 
+            #         'display.max_columns', None
+            #     ):
+            #         print(output)
+
+            # else:
+            #     print(output)
