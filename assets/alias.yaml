@@ -1,16 +1,25 @@
-smalltalk:
-  - _greeting_
-  - _repeat_
-  - what
-  - hmm
+acoustic_oos:
+  - audio_channel_noise
+  - audio_channel_noise_hold
+  - audio_speech_unclear
+  - audio_speech_volume
+  - audio_silent
+  - background_noise
+  - background_speech
+  - other_language
+oos:
+  - partial
+  - ood
+  - _oos_
+  - _ # leave `_` as it is, since it is what represents `null`, NaN values.
+smalltalk_intents:
   - _confirm_
   - _cancel_
-
-oos:
-  - _oos_
-  - _ood_
-  - audio_silent_background_talking
-  - audio_silent
-  - broken_voice
-  - short_utterance
-  - audio_noisy
+  - _repeat_
+  - _what_
+  - _greeting_
+  - request_agent
+critical_intents:
+  - booking_status
+  - booking_cancellation
+  - booking_modification

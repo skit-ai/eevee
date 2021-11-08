@@ -14,6 +14,9 @@ def intent_report(
 
     df = pd.merge(true_labels, pred_labels, on="id", how="inner")
 
+    # for cases where we are seeing NaN values popping up.
+    df[['intent_x', 'intent_y']] = df[['intent_x', 'intent_y']].fillna(value="_")
+
     # vanilla case, where just ordinary classification report is required.
     # it goes out as str or dict, depending on `return_output_as_dict`
     if intent_groups is None and not breakdown:
