@@ -94,8 +94,8 @@ def main():
                 print(output)
 
     elif args["asr"]:
-        true_labels = pd.read_csv(args["<true-labels>"])
-        pred_labels = pd.read_csv(args["<pred-labels>"])
+        true_labels = pd.read_csv(args["<true-labels>"], usecols=["id", "transcription"])
+        pred_labels = pd.read_csv(args["<pred-labels>"], usecols=["id", "utterances"])
 
         output = asr_report(true_labels, pred_labels)
 
