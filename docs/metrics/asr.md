@@ -15,7 +15,23 @@ nav_order: 3
 | Utterance False Negative Rate (uFNR) | Ratio of cases where utterances where transcribed as silence. |
 
 ## Data schema
-`TODO`: Note about the `<>` situation in transcription.
+
+We expect, 
+* tagged.transcriptions.csv to have columns called `id` and `transcription`, where `transcription` can have only one string as value for each row, if not present leave it empty as it is, it'll get parsed as `NaN`.
+* predicted.transcriptions.csv to have columns called `id` and `utterances`, where **each value** in the `utterances` column looks like this:
+
+```
+'[[
+    {"confidence": 0.94847125, "transcript": "iya iya iya iya iya"}, 
+    {"confidence": 0.9672866, "transcript": "iya iya iya iya"}, 
+    {"confidence": 0.8149829, "transcript": "iya iya iya iya iya iya"}
+]]'
+```
+
+as you might have noticed it is expected to be in `JSON` format. each `transcript` represents each alternative from the ASR, and `confidence` represents ASR's confidence for that particular alternative. If no such `utterances` present for that particular `id`, leave it as `'[]'` (`json.dumps` of empty list `[]`)
+
+Note: Please remove `transcription` column from predicted.transcriptions.csv (if it exists) before using `eevee`.
+
 
 ## Usage
 
@@ -35,4 +51,18 @@ Utterance FNR  0.250000        4
 ```
 
 ### Python module
-`TODO`
+
+```python
+>>> import pandas as pd
+>>> from eevee.metrics.asr import asr_report
+>>> 
+>>> true_df = pd.read_csv("data/tagged.transcriptions.csv", usecols=["id", "transcription"])
+>>> pred_df = pd.read_csv("data/predicted.transcriptions.csv", usecols=["id", "utterances"])
+>>> 
+>>> asr_report(true_df, pred_df)
+                  Value  Support
+Metric                          
+WER            0.571429        6
+Utterance FPR  0.500000        2
+Utterance FNR  0.250000        4
+```
