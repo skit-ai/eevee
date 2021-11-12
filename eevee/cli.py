@@ -9,7 +9,9 @@ Usage:
 Options:
   --json                            If true, dump the report in json format for machine
                                     consumption instead of pretty printing.
-  --breakdown                       If true, breaksdown the categorical entities for entities.
+  --breakdown                       If true, breaksdown the 
+                                        * categorical entities for entities (or)
+                                        * grouped intents when --alias-yaml  is provided.
   --dump                            If true, dumps the prediction fp, fn, mm errors as csvs.
   --alias-yaml=<alias_yaml_path>    Path to aliasing yaml for intents.
 
@@ -43,6 +45,9 @@ def main():
         alias_yaml = args["--alias-yaml"]
         return_output_as_dict = False
         intent_groups = None
+
+        if not alias_yaml and breakdown:
+            raise ValueError("--breakdown requires, --alias-yaml along with it.")
 
         if alias_yaml:
             intent_groups = parse_yaml(alias_yaml)
