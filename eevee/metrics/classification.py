@@ -8,6 +8,7 @@ def intent_report(
     true_labels: pd.DataFrame,
     pred_labels: pd.DataFrame,
     return_output_as_dict : bool=False,
+    intent_aliases: Optional[Dict[str, List[str]]] = None,
     intent_groups: Optional[Dict[str, List[str]]]=None,
     breakdown=False,
 ):
@@ -16,6 +17,12 @@ def intent_report(
 
     # for cases where we are seeing NaN values popping up.
     df[['intent_x', 'intent_y']] = df[['intent_x', 'intent_y']].fillna(value="_")
+
+    # aliasing intents
+    if intent_aliases is not None:
+        alias_dict = {intent: alias for alias, intent_list in intent_aliases.items() for intent in intent_list}
+        for col in ["intent_x", "intent_y"]:
+            df[col] = df[col].apply(lambda intent: alias_dict.get(intent, intent))
 
     # vanilla case, where just ordinary classification report is required.
     # it goes out as str or dict, depending on `return_output_as_dict`
