@@ -2,7 +2,7 @@
 eevee
 
 Usage:
-  eevee intent <true-labels> <pred-labels> [--json] [--alias-yaml=<alias_yaml_path>] [--breakdown]
+  eevee intent <true-labels> <pred-labels> [--json] [--alias-yaml=<alias_yaml_path>] [--groups-yaml=<groups-yaml_path>] [--breakdown]
   eevee asr <true-labels> <pred-labels> [--json]
   eevee entity <true-labels> <pred-labels> [--json] [--breakdown] [--dump]
 
@@ -14,6 +14,7 @@ Options:
                                         * grouped intents when --alias-yaml  is provided.
   --dump                            If true, dumps the prediction fp, fn, mm errors as csvs.
   --alias-yaml=<alias_yaml_path>    Path to aliasing yaml for intents.
+  --groups-yaml=<groups_yaml_path>  Path to intent groups yaml for batched evaluation.
 
 Arguments:
   <true-labels>             Path to file with true labels with our dataframe
@@ -43,14 +44,19 @@ def main():
 
         breakdown = True if args["--breakdown"] else False
         alias_yaml = args["--alias-yaml"]
+        groups_yaml = args["--groups-yaml"]
         return_output_as_dict = False
+        intent_aliases = None
         intent_groups = None
 
-        if not alias_yaml and breakdown:
+        if not groups_yaml and breakdown:
             raise ValueError("--breakdown requires, --alias-yaml along with it.")
 
         if alias_yaml:
-            intent_groups = parse_yaml(alias_yaml)
+            intent_aliases = parse_yaml(alias_yaml)
+
+        if groups_yaml:
+            intent_groups = parse_yaml(groups_yaml)
 
         if args["--json"] or breakdown:
             return_output_as_dict = True
@@ -59,6 +65,7 @@ def main():
             true_labels,
             pred_labels,
             return_output_as_dict=return_output_as_dict,
+            intent_aliases=intent_aliases,
             intent_groups=intent_groups,
             breakdown=breakdown,
         )
