@@ -36,14 +36,18 @@ def intent_report(
     # to give out pd.DataFrame or Dict[str, pd.DataFrame] only in case of grouping.
     if intent_groups is not None:
 
+        # intent_groups copy, since `intent_groups` is getting mutated and giving 
+        # odd behavior on even trials. 
+        ig_replica = {k: v for k, v in intent_groups.items()}
+
         unique_intents = set(df["intent_x"]).union(set(df["intent_y"]))
         given_intents = set()
 
-        for tagged_intents in intent_groups.values():
+        for tagged_intents in ig_replica.values():
             given_intents.update(tagged_intents)
 
         inscope_intents = unique_intents - given_intents
-        intent_groups["in_scope"] = list(inscope_intents)
+        ig_replica["in_scope"] = list(inscope_intents)
 
         # where each intent group is having its own classification_report
         if breakdown:
@@ -51,7 +55,7 @@ def intent_report(
             return_output_as_dict = True
             grouped_classification_reports = {}
 
-            for group_intent, tagged_intents in intent_groups.items():
+            for group_intent, tagged_intents in ig_replica.items():
 
                 group_classification_report = classification_report(
                     df["intent_x"], df["intent_y"], output_dict=return_output_as_dict, zero_division=0, labels=tagged_intents
@@ -67,7 +71,7 @@ def intent_report(
 
             weighted_group_intents_numbers : List[Dict] = []
 
-            for group_intent, tagged_intents in intent_groups.items():
+            for group_intent, tagged_intents in ig_replica.items():
 
                 p, r, f, _ = precision_recall_fscore_support(
                                     df["intent_x"], df["intent_y"], 
