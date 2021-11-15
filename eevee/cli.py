@@ -58,7 +58,7 @@ def main():
         if groups_yaml:
             intent_groups = parse_yaml(groups_yaml)
 
-        if args["--json"] or breakdown:
+        if args["--json"]:
             return_output_as_dict = True
 
         output = intent_report(

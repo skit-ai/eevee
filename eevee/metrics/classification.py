@@ -48,16 +48,17 @@ def intent_report(
         # where each intent group is having its own classification_report
         if breakdown:
 
+            return_output_as_dict = True
             grouped_classification_reports = {}
 
-            for alias_intent, tagged_intents in intent_groups.items():
+            for group_intent, tagged_intents in intent_groups.items():
 
                 group_classification_report = classification_report(
                     df["intent_x"], df["intent_y"], output_dict=return_output_as_dict, zero_division=0, labels=tagged_intents
                 )
                 group_classification_report_df = pd.DataFrame(group_classification_report).transpose()
                 group_classification_report_df["support"] = group_classification_report_df["support"].astype('int32')
-                grouped_classification_reports[alias_intent] = group_classification_report_df
+                grouped_classification_reports[group_intent] = group_classification_report_df
 
             return grouped_classification_reports
 
@@ -66,7 +67,7 @@ def intent_report(
 
             weighted_group_intents_numbers : List[Dict] = []
 
-            for alias_intent, tagged_intents in intent_groups.items():
+            for group_intent, tagged_intents in intent_groups.items():
 
                 p, r, f, _ = precision_recall_fscore_support(
                                     df["intent_x"], df["intent_y"], 
@@ -79,7 +80,7 @@ def intent_report(
                 support = df["intent_x"].isin(tagged_intents).sum()
 
                 wgin = {
-                    "group": alias_intent,
+                    "group": group_intent,
                     "precision": p,
                     "recall": r,
                     "f1-score": f,
