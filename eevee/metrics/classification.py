@@ -8,6 +8,7 @@ def intent_report(
     true_labels: pd.DataFrame,
     pred_labels: pd.DataFrame,
     return_output_as_dict : bool=False,
+    intent_aliases: Optional[Dict[str, List[str]]] = None,
     intent_groups: Optional[Dict[str, List[str]]]=None,
     breakdown=False,
 ):
@@ -16,6 +17,12 @@ def intent_report(
 
     # for cases where we are seeing NaN values popping up.
     df[['intent_x', 'intent_y']] = df[['intent_x', 'intent_y']].fillna(value="_")
+
+    # aliasing intents
+    if intent_aliases is not None:
+        alias_dict = {intent: alias for alias, intent_list in intent_aliases.items() for intent in intent_list}
+        for col in ["intent_x", "intent_y"]:
+            df[col] = df[col].apply(lambda intent: alias_dict.get(intent, intent))
 
     # vanilla case, where just ordinary classification report is required.
     # it goes out as str or dict, depending on `return_output_as_dict`
@@ -41,16 +48,17 @@ def intent_report(
         # where each intent group is having its own classification_report
         if breakdown:
 
+            return_output_as_dict = True
             grouped_classification_reports = {}
 
-            for alias_intent, tagged_intents in intent_groups.items():
+            for group_intent, tagged_intents in intent_groups.items():
 
                 group_classification_report = classification_report(
                     df["intent_x"], df["intent_y"], output_dict=return_output_as_dict, zero_division=0, labels=tagged_intents
                 )
                 group_classification_report_df = pd.DataFrame(group_classification_report).transpose()
                 group_classification_report_df["support"] = group_classification_report_df["support"].astype('int32')
-                grouped_classification_reports[alias_intent] = group_classification_report_df
+                grouped_classification_reports[group_intent] = group_classification_report_df
 
             return grouped_classification_reports
 
@@ -59,7 +67,7 @@ def intent_report(
 
             weighted_group_intents_numbers : List[Dict] = []
 
-            for alias_intent, tagged_intents in intent_groups.items():
+            for group_intent, tagged_intents in intent_groups.items():
 
                 p, r, f, _ = precision_recall_fscore_support(
                                     df["intent_x"], df["intent_y"], 
@@ -72,7 +80,7 @@ def intent_report(
                 support = df["intent_x"].isin(tagged_intents).sum()
 
                 wgin = {
-                    "group": alias_intent,
+                    "group": group_intent,
                     "precision": p,
                     "recall": r,
                     "f1-score": f,
