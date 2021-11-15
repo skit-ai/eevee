@@ -95,11 +95,11 @@ def main():
 
             # when alias.yaml is given, and one expects a breakdown of group's classification
             # report as per each group
-            if alias_yaml is not None and breakdown:
+            if groups_yaml is not None and breakdown:
                 # output : Dict[str, pd.DataFrame]
-                for alias_intent, group_intent_metrics_df in output.items():
+                for group_intent, group_intent_metrics_df in output.items():
                     print("\n")
-                    print("group :", alias_intent)
+                    print("group :", group_intent)
                     print(group_intent_metrics_df)
 
             else:
