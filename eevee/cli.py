@@ -50,7 +50,7 @@ def main():
         intent_groups = None
 
         if not groups_yaml and breakdown:
-            raise ValueError("--breakdown requires, --alias-yaml along with it.")
+            raise ValueError("--breakdown requires, --groups-yaml along with it.")
 
         if alias_yaml:
             intent_aliases = parse_yaml(alias_yaml)
