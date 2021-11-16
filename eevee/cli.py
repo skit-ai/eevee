@@ -3,6 +3,7 @@ eevee
 
 Usage:
   eevee intent <true-labels> <pred-labels> [--json] [--alias-yaml=<alias_yaml_path>] [--groups-yaml=<groups-yaml_path>] [--breakdown]
+  eevee intent layers <true-labels> <pred-labels> --layers-yaml=<layers_yaml_path> [--breakdown]
   eevee asr <true-labels> <pred-labels> [--json]
   eevee entity <true-labels> <pred-labels> [--json] [--breakdown] [--dump]
 
@@ -30,6 +31,7 @@ from docopt import docopt
 
 from eevee import __version__
 from eevee.metrics import intent_report
+from eevee.metrics.classification import intent_layers_report
 from eevee.metrics.asr import asr_report
 from eevee.metrics.entity import categorical_entity_report, entity_report
 from eevee.utils import parse_yaml
@@ -42,40 +44,55 @@ def main():
         true_labels = pd.read_csv(args["<true-labels>"])
         pred_labels = pd.read_csv(args["<pred-labels>"])
 
-        breakdown = True if args["--breakdown"] else False
-        alias_yaml = args["--alias-yaml"]
-        groups_yaml = args["--groups-yaml"]
-        return_output_as_dict = False
-        intent_aliases = None
-        intent_groups = None
+        if args["layers"]:
+            breakdown = True if args["--breakdown"] else False
+            layers_yaml = args["--layers-yaml"]
+            intent_layers = None
 
-        if not groups_yaml and breakdown:
-            raise ValueError("--breakdown requires, --groups-yaml along with it.")
+            if layers_yaml:
+                intent_layers = parse_yaml(layers_yaml)
 
-        if alias_yaml:
-            intent_aliases = parse_yaml(alias_yaml)
+            output = intent_layers_report(
+                true_labels,
+                pred_labels,
+                intent_layers=intent_layers,
+                breakdown=breakdown,
+            )
+        else:
+            breakdown = True if args["--breakdown"] else False
+            alias_yaml = args["--alias-yaml"]
+            groups_yaml = args["--groups-yaml"]
+            return_output_as_dict = False
+            intent_aliases = None
+            intent_groups = None
 
-        if groups_yaml:
-            intent_groups = parse_yaml(groups_yaml)
+            if not groups_yaml and breakdown:
+                raise ValueError("--breakdown requires, --groups-yaml along with it.")
 
-        if args["--json"]:
-            return_output_as_dict = True
+            if alias_yaml:
+                intent_aliases = parse_yaml(alias_yaml)
 
-        output = intent_report(
-            true_labels,
-            pred_labels,
-            return_output_as_dict=return_output_as_dict,
-            intent_aliases=intent_aliases,
-            intent_groups=intent_groups,
-            breakdown=breakdown,
-        )
+            if groups_yaml:
+                intent_groups = parse_yaml(groups_yaml)
+
+            if args["--json"]:
+                return_output_as_dict = True
+
+            output = intent_report(
+                true_labels,
+                pred_labels,
+                return_output_as_dict=return_output_as_dict,
+                intent_aliases=intent_aliases,
+                intent_groups=intent_groups,
+                breakdown=breakdown,
+            )
             
         # output can be str when return_output_as_dict=False, intent_groups is None and breakdown=False
         # output can be dict when return_output_as_dict=True (intent_groups can be present or absent)
             # can be dict of dict, or dict of str, pd.DataFrames
         # output can be pd.DataFrame when return_output_as_dict=False, intent_groups is present and breakdown=False            
 
-        if args["--json"]:
+        if args["--json"] or args["layers"]:
 
             # grouping is present and breakdown is asked for
             # output : Dict[str, pd.DataFrame] -> output : Dict[str, Dict[str, Dict]]
