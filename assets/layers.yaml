@@ -1,0 +1,18 @@
+intent_x: #true
+  acoustic_oos:
+    - audio_channel_noise
+    - audio_channel_noise_hold
+    - audio_speech_unclear
+    - audio_speech_volume
+    - audio_silent
+    - background_noise
+    - background_speech
+    - other_language
+    - _ # leave `_` as it is, since it is what represents `null`, NaN values.
+  lexical_oos:
+    - partial
+    - ood
+    - _oos_
+intent_y: #predicted
+  oos:
+    - oos
