@@ -117,7 +117,7 @@ def intent_layers_report(
     #aliasing trues
     col = "intent_x"
     intents_dict = {value: key for key, values in intent_layers.get(col).items() for value in values}
-    df["{}-alias".format(col)] = df[col].apply(lambda tag: intents_dict.get(col).get(tag, tag))
+    df["{}-alias".format(col)] = df[col].apply(lambda intent: intents_dict.get(intent, intent))
 
     PREDICTED_LAYER = list(intent_layers.get("intent_y").keys())[0]
 
@@ -129,7 +129,7 @@ def intent_layers_report(
 
         for sub_layer in intent_layers.get("intent_x"):
             col = "intent_y"
-            df["{}-alias".format(col)] = df[col].apply(lambda tag: {PREDICTED_LAYER: sub_layer}.get(tag, tag))
+            df["{}-alias".format(col)] = df[col].apply(lambda intent: {PREDICTED_LAYER: sub_layer}.get(intent, intent))
             group_classification_report = classification_report(df["{}-alias".format("intent_x")],
                                                                 df["{}-alias".format("intent_y")],
                                                                 labels=[sub_layer], output_dict=return_output_as_dict, zero_division=0)
@@ -140,7 +140,7 @@ def intent_layers_report(
         # normal oos calculations
         reverse_oos = {sub_layer: PREDICTED_LAYER for sub_layer in intent_layers.get("intent_x")}
         col = "intent_x"
-        df["{}-alias".format(col)] = df["{}-alias".format(col)].apply(lambda tag: reverse_oos.get(tag, tag))
+        df["{}-alias".format(col)] = df["{}-alias".format(col)].apply(lambda intent: reverse_oos.get(intent, intent))
         group_classification_report = classification_report(df["{}-alias".format("intent_x")],
                                                             df["intent_y"],
                                                             labels=[PREDICTED_LAYER], output_dict=return_output_as_dict, zero_division=0)
@@ -157,7 +157,7 @@ def intent_layers_report(
 
         for sub_layer in intent_layers.get("intent_x"):
             col = "intent_y"
-            df["{}-alias".format(col)] = df[col].apply(lambda tag: {PREDICTED_LAYER: sub_layer}.get(tag, tag))
+            df["{}-alias".format(col)] = df[col].apply(lambda intent: {PREDICTED_LAYER: sub_layer}.get(intent, intent))
             p, r, f, _ = precision_recall_fscore_support(
                 df["{}-alias".format("intent_x")],
                 df["{}-alias".format("intent_y")],
@@ -178,7 +178,7 @@ def intent_layers_report(
 
         reverse_oos = {sub_layer: PREDICTED_LAYER for sub_layer in intent_layers.get("intent_x")}
         col = "intent_x"
-        df["{}-alias".format(col)] = df["{}-alias".format(col)].apply(lambda tag: reverse_oos.get(tag, tag))
+        df["{}-alias".format(col)] = df["{}-alias".format(col)].apply(lambda intent: reverse_oos.get(intent, intent))
         p, r, f, _ = precision_recall_fscore_support(
             df["{}-alias".format("intent_x")],
             df["intent_y"],
