@@ -96,7 +96,7 @@ def main():
 
             # grouping is present and breakdown is asked for
             # output : Dict[str, pd.DataFrame] -> output : Dict[str, Dict[str, Dict]]
-            if (alias_yaml is not None or args["layers"]) and isinstance(output, dict):
+            if (groups_yaml is not None or args["layers"]) and isinstance(output, dict):
                 for alias_intent, group_intent_metrics_df in output.items():
                     output[alias_intent] = group_intent_metrics_df.to_dict("index")
 
@@ -112,7 +112,7 @@ def main():
 
             # when alias.yaml is given, and one expects a breakdown of group's classification
             # report as per each group
-            if (alias_yaml is not None or args["layers"]) and breakdown:
+            if (groups_yaml is not None or args["layers"]) and breakdown:
                 # output : Dict[str, pd.DataFrame]
                 for group_intent, group_intent_metrics_df in output.items():
                     print("\n")
