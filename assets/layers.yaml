@@ -16,3 +16,4 @@ intent_x: #true
 intent_y: #predicted
   oos:
     - oos
+    - _ # leave `_` as it is, since it is what represents `null`, NaN values.
