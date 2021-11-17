@@ -3,7 +3,7 @@ eevee
 
 Usage:
   eevee intent <true-labels> <pred-labels> [--json] [--alias-yaml=<alias_yaml_path>] [--groups-yaml=<groups-yaml_path>] [--breakdown]
-  eevee intent layers <true-labels> <pred-labels> --layers-yaml=<layers_yaml_path> [--breakdown]
+  eevee intent layers <true-labels> <pred-labels> --layers-yaml=<layers_yaml_path> [--breakdown] [--json]
   eevee asr <true-labels> <pred-labels> [--json]
   eevee entity <true-labels> <pred-labels> [--json] [--breakdown] [--dump]
 
@@ -16,6 +16,7 @@ Options:
   --dump                            If true, dumps the prediction fp, fn, mm errors as csvs.
   --alias-yaml=<alias_yaml_path>    Path to aliasing yaml for intents.
   --groups-yaml=<groups_yaml_path>  Path to intent groups yaml for batched evaluation.
+  --layers-yaml=<layers_yaml_path>  Path to intent layers yaml for evaluation of sub layers.
 
 Arguments:
   <true-labels>             Path to file with true labels with our dataframe
@@ -91,11 +92,11 @@ def main():
             # can be dict of dict, or dict of str, pd.DataFrames
         # output can be pd.DataFrame when return_output_as_dict=False, intent_groups is present and breakdown=False            
 
-        if args["--json"] or args["layers"]:
+        if args["--json"]:
 
             # grouping is present and breakdown is asked for
             # output : Dict[str, pd.DataFrame] -> output : Dict[str, Dict[str, Dict]]
-            if alias_yaml is not None and isinstance(output, dict):
+            if (alias_yaml is not None or args["layers"]) and isinstance(output, dict):
                 for alias_intent, group_intent_metrics_df in output.items():
                     output[alias_intent] = group_intent_metrics_df.to_dict("index")
 
@@ -111,7 +112,7 @@ def main():
 
             # when alias.yaml is given, and one expects a breakdown of group's classification
             # report as per each group
-            if groups_yaml is not None and breakdown:
+            if (alias_yaml is not None or args["layers"]) and breakdown:
                 # output : Dict[str, pd.DataFrame]
                 for group_intent, group_intent_metrics_df in output.items():
                     print("\n")
