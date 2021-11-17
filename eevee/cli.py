@@ -43,11 +43,16 @@ def main():
     if args["intent"]:
         true_labels = pd.read_csv(args["<true-labels>"])
         pred_labels = pd.read_csv(args["<pred-labels>"])
+        breakdown = True if args["--breakdown"] else False
+        alias_yaml = args["--alias-yaml"]
+        groups_yaml = args["--groups-yaml"]
+        layers_yaml = args["--layers-yaml"]
+        return_output_as_dict = False
+        intent_aliases = None
+        intent_groups = None
+        intent_layers = None
 
         if args["layers"]:
-            breakdown = True if args["--breakdown"] else False
-            layers_yaml = args["--layers-yaml"]
-            intent_layers = None
 
             if layers_yaml:
                 intent_layers = parse_yaml(layers_yaml)
@@ -59,12 +64,6 @@ def main():
                 breakdown=breakdown,
             )
         else:
-            breakdown = True if args["--breakdown"] else False
-            alias_yaml = args["--alias-yaml"]
-            groups_yaml = args["--groups-yaml"]
-            return_output_as_dict = False
-            intent_aliases = None
-            intent_groups = None
 
             if not groups_yaml and breakdown:
                 raise ValueError("--breakdown requires, --groups-yaml along with it.")
