@@ -518,12 +518,15 @@ def asr_report(true_labels: pd.DataFrame, pred_labels: pd.DataFrame) -> pd.DataF
         df["transcription"] == "", df["pred_transcription"] == "", labels=[False, True]
     )
 
+    # sentence error rate = number of sentences with error / number of sensntences
+    ser = len(list(filter(lambda x: x>0, wers)))/len(wers) 
+
     # TODO: Find WER over the corpus (like this → https://kaldi-asr.org/doc/compute-wer_8cc.html)
     report = pd.DataFrame(
         {
-            "Metric": ["WER", "Utterance FPR", "Utterance FNR"],
-            "Value": [np.mean(wers), utterance_fpr, utterance_fnr],
-            "Support": [len(df), total_empty, total_non_empty],
+            "Metric": ["WER", "Utterance FPR", "Utterance FNR", "SER"],
+            "Value": [np.mean(wers), utterance_fpr, utterance_fnr, ser],
+            "Support": [len(df), total_empty, total_non_empty, len(df)],
         }
     )
     report.set_index("Metric", inplace=True)
