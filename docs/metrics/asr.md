@@ -46,11 +46,12 @@ eevee asr ./data/tagged.transcriptions.csv ./data/predicted.transcriptions.csv
 ```
 
 ```
-               Value     Support
-Metric
+                  Value  Support
+Metric                          
 WER            0.571429        6
 Utterance FPR  0.500000        2
 Utterance FNR  0.250000        4
+SER            0.666667        6
 ```
 
 For users who want utternace level metrics, add the "--dump" flag like:
@@ -66,14 +67,15 @@ This will add a csv file called **predicted.transcriptions-dump.csv**. The filen
 ```python
 >>> import pandas as pd
 >>> from eevee.metrics.asr import asr_report
->>>
+>>> 
 >>> true_df = pd.read_csv("data/tagged.transcriptions.csv", usecols=["id", "transcription"])
 >>> pred_df = pd.read_csv("data/predicted.transcriptions.csv", usecols=["id", "utterances"])
->>>
+>>> 
 >>> asr_report(true_df, pred_df)
                   Value  Support
-Metric
+Metric                          
 WER            0.571429        6
 Utterance FPR  0.500000        2
 Utterance FNR  0.250000        4
+SER            0.666667        6
 ```
