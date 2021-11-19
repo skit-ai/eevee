@@ -53,13 +53,13 @@ Utterance FPR  0.500000        2
 Utterance FNR  0.250000        4
 ```
 
-For users who want utternace level breakdown, add the "--breakdown" flag like:
+For users who want utternace level metrics, add the "--dump" flag like:
 
 ```shell
-eevee asr ./data/tagged.transcriptions.csv ./data/predicted.transcriptions.csv --breakdown
+eevee asr ./data/tagged.transcriptions.csv ./data/predicted.transcriptions.csv --dump
 ```
 
-This will add a csv file called **predicted.transcriptions-breakdown.csv**. The filename is based on the prediction filename given by the user
+This will add a csv file called **predicted.transcriptions-dump.csv**. The filename is based on the prediction filename given by the user
 
 ### Python module
 

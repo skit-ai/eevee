@@ -483,7 +483,7 @@ def get_first_transcript(utterances) -> str:
         return ""
 
 
-def asr_report(true_labels: pd.DataFrame, pred_labels: pd.DataFrame, breakdown: bool=False) -> Union[pd.DataFrame, Tuple[pd.DataFrame, pd.DataFrame]]:
+def asr_report(true_labels: pd.DataFrame, pred_labels: pd.DataFrame, dump: bool=False) -> Union[pd.DataFrame, Tuple[pd.DataFrame, pd.DataFrame]]:
     """
     Generate ASR report based on true and predicted labels.
 
@@ -530,7 +530,7 @@ def asr_report(true_labels: pd.DataFrame, pred_labels: pd.DataFrame, breakdown: 
         }
     )
     report.set_index("Metric", inplace=True)
-    if breakdown:
+    if dump:
         return report, df
     else:
         return report

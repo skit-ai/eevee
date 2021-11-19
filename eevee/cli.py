@@ -4,7 +4,7 @@ eevee
 Usage:
   eevee intent <true-labels> <pred-labels> [--json] [--alias-yaml=<alias_yaml_path>] [--groups-yaml=<groups-yaml_path>] [--breakdown]
   eevee intent layers <true-labels> <pred-labels> --layers-yaml=<layers_yaml_path> [--breakdown] [--json]
-  eevee asr <true-labels> <pred-labels> [--json] [--breakdown]
+  eevee asr <true-labels> <pred-labels> [--json] [--dump]
   eevee entity <true-labels> <pred-labels> [--json] [--breakdown] [--dump]
 
 Options:
@@ -13,8 +13,9 @@ Options:
   --breakdown                       If true, breaksdown the 
                                         * categorical entities for entities (or)
                                         * grouped intents when --alias-yaml  is provided.
-                                        * ASR metrics on an utterance level
-  --dump                            If true, dumps the prediction fp, fn, mm errors as csvs.
+  --dump                            If true, 
+                                    * dumps the prediction fp, fn, mm errors as csvs.
+                                    * ASR metrics on an utterance level
   --alias-yaml=<alias_yaml_path>    Path to aliasing yaml for intents.
   --groups-yaml=<groups_yaml_path>  Path to intent groups yaml for batched evaluation.
   --layers-yaml=<layers_yaml_path>  Path to intent layers yaml for evaluation of sub layers.
@@ -127,11 +128,11 @@ def main():
         true_labels = pd.read_csv(args["<true-labels>"], usecols=["id", "transcription"])
         pred_labels = pd.read_csv(args["<pred-labels>"], usecols=["id", "utterances"])
 
-        breakdown = True if args["--breakdown"] else False
+        dump = True if args["--dump"] else False
         
-        if breakdown:
-            output, breakdown = asr_report(true_labels, pred_labels, breakdown)
-            breakdown.to_csv(f'{args["<pred-labels>"].replace(".csv", "")}-breakdown.csv', index=False)
+        if dump:
+            output, breakdown = asr_report(true_labels, pred_labels, dump)
+            breakdown.to_csv(f'{args["<pred-labels>"].replace(".csv", "")}-dump.csv', index=False)
         else:
             output = asr_report(true_labels, pred_labels)
         
