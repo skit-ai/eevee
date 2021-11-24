@@ -51,6 +51,13 @@ def dump_error_reports(df: pd.DataFrame, fp_error_idxs, fn_error_idxs, mm_errror
 
     df.drop(labels=["index", "true", "pred", "entity_comp_results"], axis=1, inplace=True)
     df.rename(columns={"entities_x": "true_entities", "entities_y": "pred_entities"}, inplace=True)
+    
+    columns_we_should_give = ["id", "true_entities", "pred_entities", "true_ent_type", "pred_ent_type"]
+    columns_that_help_with_ega =  ["call_uuid", "conversation_uuid", "alternatives", "audio_url", "prediction", "state"]
+
+    # just to make the order of columns easy to grasp.
+    if pd.Series(columns_that_help_with_ega).isin(df.columns).all():
+        df = df[columns_we_should_give + columns_that_help_with_ega]
 
     fp_df = df.loc[df.index[fp_error_idxs]]
     fn_df = df.loc[df.index[fn_error_idxs]]
