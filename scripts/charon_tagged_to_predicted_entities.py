@@ -1,5 +1,5 @@
 """
-Script for picking predicted_entities from charon's tagged_data.csv,
+Script for picking predicted_entities (along with other columns that help with EGA) from charon's tagged_data.csv,
 and saving it in a different file.
 
 Usage:
@@ -16,7 +16,13 @@ from docopt import docopt
 
 def convert(input_path, output_path):
 
-    df = pd.read_csv(input_path, usecols=["id", "predicted_entities"])
+    usecols = [
+        "id", "predicted_entities", 
+        "call_uuid", "conversation_uuid",
+        "alternatives", "audio_url", "prediction", "state"
+    ]
+
+    df = pd.read_csv(input_path, usecols=usecols)
     df = df.rename(columns={"predicted_entities": "entities"})
     df.to_csv(output_path, index=False)
 
