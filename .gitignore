@@ -95,7 +95,7 @@ ENV/
 .code
 .vscode
 
-/poetry.lock
+
 GPATH
 GRTAGS
 GTAGS
