@@ -432,6 +432,16 @@ def _get_ppl(sent: str, lm) -> float:
                 return lm.counts()[0][1]
 
 
+def get_alt_metric(truth: str, predictions: List[str], metric) -> List[float]:
+    """
+    Get a metric over a list of prediction alternatives
+    """
+    results = []
+    for pred in predictions:
+        results.append(metric(truth, pred))
+    return results
+
+
 def merge_utterances(utterances):
     """
     At times when the user is speaking with gaps, we get more than one results
@@ -471,6 +481,21 @@ def merge_utterances(utterances):
     return [[alt for _, alt in merged]]
 
 
+def get_n_transcripts(utterances, n=3) -> List[str]:
+    """
+    Return a list of first n transcripts.
+    """
+    transcripts = []
+    for x in range(min(n, len(utterances[0]))):
+        try:
+            transcripts.append(utterances[0][x]["transcript"])
+        except (KeyError, IndexError):
+            pass
+    if transcripts == []:
+        transcripts.append("")
+    return transcripts
+
+
 def get_first_transcript(utterances) -> str:
     """
     Return first transcript from the first utterance. Return '' if utterances
@@ -483,7 +508,9 @@ def get_first_transcript(utterances) -> str:
         return ""
 
 
-def asr_report(true_labels: pd.DataFrame, pred_labels: pd.DataFrame, dump: bool=False) -> Union[pd.DataFrame, Tuple[pd.DataFrame, pd.DataFrame]]:
+def asr_report(
+    true_labels: pd.DataFrame, pred_labels: pd.DataFrame, dump: bool = False
+) -> Union[pd.DataFrame, Tuple[pd.DataFrame, pd.DataFrame]]:
     """
     Generate ASR report based on true and predicted labels.
 
@@ -508,25 +535,62 @@ def asr_report(true_labels: pd.DataFrame, pred_labels: pd.DataFrame, dump: bool=
     df["utterances"] = df["utterances"].apply(
         lambda it: merge_utterances(json.loads(it))
     )
-    df["pred_transcription"] = df["utterances"].apply(get_first_transcript)
 
-    df["wer"] = df.apply(
-        lambda row: wer(row["transcription"], row["pred_transcription"]), axis=1
+    df["all_pred_transcriptions"] = df["utterances"].apply(
+        get_n_transcripts, args=(10,)
+    )
+
+    df["pred_transcription"] = df["all_pred_transcriptions"].map(lambda x: x[0])
+
+    df["all_wer"] = df.apply(
+        lambda row: get_alt_metric(
+            row["transcription"], row["all_pred_transcriptions"], wer
+        ),
+        axis=1,
+    )
+
+    df["wer"] = df["all_wer"].map(lambda x: x[0])
+
+    for n in [3, 10]:
+        df[f"min_{n}_wer"] = df.apply(
+            lambda row: min(row["all_wer"][:n]),
+            axis=1,
     )
 
     (utterance_fpr, total_empty), (utterance_fnr, total_non_empty) = fpr_fnr(
         df["transcription"] == "", df["pred_transcription"] == "", labels=[False, True]
     )
 
-    # sentence error rate = number of sentences with error / number of sensntences
-    ser = len(list(filter(lambda x: x>0, df["wer"].tolist())))/len(df["wer"]) 
+    # sentence error rate = number of sentences with error / number of sentences
+    ser = len(list(filter(lambda x: x > 0, df["wer"].tolist()))) / len(df["wer"])
 
     # TODO: Find WER over the corpus (like this → https://kaldi-asr.org/doc/compute-wer_8cc.html)
     report = pd.DataFrame(
         {
-            "Metric": ["WER", "Utterance FPR", "Utterance FNR", "SER"],
-            "Value": [df["wer"].mean(), utterance_fpr, utterance_fnr, ser],
-            "Support": [len(df), total_empty, total_non_empty, len(df)],
+            "Metric": [
+                "WER",
+                "Utterance FPR",
+                "Utterance FNR",
+                "SER",
+                "Min 3 WER",
+                "Min WER",
+            ],
+            "Value": [
+                df["wer"].mean(),
+                utterance_fpr,
+                utterance_fnr,
+                ser,
+                df["min_3_wer"].mean(),
+                df["min_10_wer"].mean(),
+            ],
+            "Support": [
+                len(df),
+                total_empty,
+                total_non_empty,
+                len(df),
+                len(df),
+                len(df),
+            ],
         }
     )
     report.set_index("Metric", inplace=True)
