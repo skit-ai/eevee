@@ -6,6 +6,9 @@ from sklearn.metrics import classification_report, precision_recall_fscore_suppo
 TRUE = "intent_x"
 PREDICTED = "intent_y"
 
+ALIAS_SUFFIX = "{}-alias"
+LAYER_PREFIX = "layer-{}"
+
 def intent_report(
     true_labels: pd.DataFrame,
     pred_labels: pd.DataFrame,
@@ -100,24 +103,40 @@ def intent_report(
             return weighted_group_df
 
 
-ALIAS_SUFFIX = "{}-alias"
-LAYER_PREFIX = "layer-{}"
 
-# classification report for breakdown
-def create_group_classification_report(trues, preds, labels, output_dict):
-    group_classification_report = classification_report(trues,preds, labels=labels,
+
+def create_group_classification_report(
+    trues: pd.Series, preds: pd.Series, 
+    labels: List[str], output_dict: bool) -> pd.DataFrame:
+    """
+    classification report on breakdown for groups.
+    """
+
+    group_classification_report = classification_report(trues, preds, 
+                                                        labels=labels,
                                                         output_dict=output_dict,
-                                                        zero_division=0)
+                                                        zero_division=0
+                                                        )
+
     group_classification_report_df = pd.DataFrame(group_classification_report).transpose()
     group_classification_report_df["support"] = group_classification_report_df["support"].astype('int32')
     return group_classification_report_df
 
-# weighted group intent numbers, otherwise
-def create_wgin(trues, preds, label, support):
+
+def create_wgin(
+    trues: pd.Series, preds: pd.Series, 
+    label: List[str], support: int) -> Dict[str, Any]:
+    """
+    weighted group intent numbers, otherwise
+    """
+
     # since support is None, on average='weighted' on precision_recall_fscore_support
-    p, r, f, _ = precision_recall_fscore_support(trues,preds,labels=[label],
+    p, r, f, _ = precision_recall_fscore_support(trues, preds,
+                                                 labels=[label],
                                                  average="weighted",
-                                                 zero_division=0)
+                                                 zero_division=0
+                                                 )
+
     wgin = {
         "layer": LAYER_PREFIX.format(label),
         "precision": p,
@@ -128,23 +147,25 @@ def create_wgin(trues, preds, label, support):
     
     return wgin
 
+
 def intent_layers_report(
         true_labels: pd.DataFrame,
         pred_labels: pd.DataFrame,
         intent_layers: Optional[Dict[str, Dict[str, List[str]]]] = None,
         breakdown=False,
 ):
+
     df = pd.merge(true_labels, pred_labels, on="id", how="inner")
 
     # for cases where we are seeing NaN values popping up.
     df[[TRUE, PREDICTED]] = df[[TRUE, PREDICTED]].fillna(value="_")
 
-    # aliasing preds
+    # aliasing predicted column with values provided
     col = PREDICTED
     intents_dict = {value: key for key, values in intent_layers.get(col).items() for value in values}
     df[col] = df[col].apply(lambda intent: intents_dict.get(intent, intent))
 
-    #aliasing trues
+    #aliasing true column with values provided.
     col = TRUE
     intents_dict = {value: key for key, values in intent_layers.get(col).items() for value in values}
     df[ALIAS_SUFFIX.format(col)] = df[col].apply(lambda intent: intents_dict.get(intent, intent))
@@ -162,6 +183,7 @@ def intent_layers_report(
         grouped_classification_reports = {}
 
         for sub_layer in intent_layers.get(TRUE):
+
             col = PREDICTED
             df[ALIAS_SUFFIX.format(col)] = df[col].apply(lambda intent: {PREDICTED_LAYER: sub_layer}.get(intent, intent))
             grouped_classification_reports[LAYER_PREFIX.format(sub_layer)] = create_group_classification_report(
@@ -187,6 +209,7 @@ def intent_layers_report(
         weighted_group_intents_numbers: List[Dict] = []
 
         for sub_layer in intent_layers.get(TRUE):
+            
             col = PREDICTED
             df[ALIAS_SUFFIX.format(col)] = df[col].apply(lambda intent: {PREDICTED_LAYER: sub_layer}.get(intent, intent))
             wgin = create_wgin(
