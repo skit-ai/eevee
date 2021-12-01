@@ -73,7 +73,7 @@ def wer(
     hypothesis: str,
     truth_transform: Union[tr.Compose, tr.AbstractTransform] = _default_transform,
     hypothesis_transform: Union[tr.Compose, tr.AbstractTransform] = _default_transform,
-    **kwargs
+    **kwargs,
 ) -> float:
     """
     Calculate word error rate (WER) between a ground-truth sentence and
@@ -92,7 +92,7 @@ def mer(
     hypothesis: str,
     truth_transform: Union[tr.Compose, tr.AbstractTransform] = _default_transform,
     hypothesis_transform: Union[tr.Compose, tr.AbstractTransform] = _default_transform,
-    **kwargs
+    **kwargs,
 ) -> float:
     """
     Calculate match error rate (MER) between a ground-truth sentence and
@@ -111,7 +111,7 @@ def wip(
     hypothesis: str,
     truth_transform: Union[tr.Compose, tr.AbstractTransform] = _default_transform,
     hypothesis_transform: Union[tr.Compose, tr.AbstractTransform] = _default_transform,
-    **kwargs
+    **kwargs,
 ) -> float:
     """
     Calculate Word Information Preserved (WIP) between a ground-truth
@@ -130,7 +130,7 @@ def wil(
     hypothesis: str,
     truth_transform: Union[tr.Compose, tr.AbstractTransform] = _default_transform,
     hypothesis_transform: Union[tr.Compose, tr.AbstractTransform] = _default_transform,
-    **kwargs
+    **kwargs,
 ) -> float:
     """
     Calculate Word Information Lost (WIL) between a ground-truth sentence and a hypothesis sentence.
@@ -148,7 +148,7 @@ def compute_asr_measures(
     hypothesis: str,
     truth_transform: Union[tr.Compose, tr.AbstractTransform] = _default_transform,
     hypothesis_transform: Union[tr.Compose, tr.AbstractTransform] = _default_transform,
-    **kwargs
+    **kwargs,
 ) -> Mapping[str, float]:
     """
     Calculate error measures between a ground-truth sentence and a
@@ -486,6 +486,8 @@ def get_n_transcripts(utterances, n=3) -> List[str]:
     Return a list of first n transcripts.
     """
     transcripts = []
+    if utterances == []:
+        return [""]
     for x in range(min(n, len(utterances[0]))):
         try:
             transcripts.append(utterances[0][x]["transcript"])
@@ -555,7 +557,7 @@ def asr_report(
         df[f"min_{n}_wer"] = df.apply(
             lambda row: min(row["all_wer"][:n]),
             axis=1,
-    )
+        )
 
     (utterance_fpr, total_empty), (utterance_fnr, total_non_empty) = fpr_fnr(
         df["transcription"] == "", df["pred_transcription"] == "", labels=[False, True]
