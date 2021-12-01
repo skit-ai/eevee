@@ -15,6 +15,8 @@ nav_order: 3
 | Utterance False Positive Rate (uFPR) | Ratio of cases where non speech utterances were transcribed. |
 | Utterance False Negative Rate (uFNR) | Ratio of cases where utterances where transcribed as silence. |
 | SER | Sentence Error Rate |
+| Min 3 WER | The minimum Word Error Rate when considering the first three alternatives only |
+| Min WER | The minimum Word Error Rate out of all the alternatives |
 
 ## Data schema
 
@@ -47,11 +49,14 @@ eevee asr ./data/tagged.transcriptions.csv ./data/predicted.transcriptions.csv
 
 ```
                   Value  Support
-Metric                          
+Metric
 WER            0.571429        6
 Utterance FPR  0.500000        2
 Utterance FNR  0.250000        4
 SER            0.666667        6
+Min 3 WER      0.571429        6
+Min WER        0.571429        6
+
 ```
 
 For users who want utternace level metrics, add the "--dump" flag like:
@@ -67,15 +72,18 @@ This will add a csv file called **predicted.transcriptions-dump.csv**. The filen
 ```python
 >>> import pandas as pd
 >>> from eevee.metrics.asr import asr_report
->>> 
+>>>
 >>> true_df = pd.read_csv("data/tagged.transcriptions.csv", usecols=["id", "transcription"])
 >>> pred_df = pd.read_csv("data/predicted.transcriptions.csv", usecols=["id", "utterances"])
->>> 
+>>>
 >>> asr_report(true_df, pred_df)
                   Value  Support
-Metric                          
+Metric
 WER            0.571429        6
 Utterance FPR  0.500000        2
 Utterance FNR  0.250000        4
 SER            0.666667        6
+Min 3 WER      0.571429        6
+Min WER        0.571429        6
+
 ```
