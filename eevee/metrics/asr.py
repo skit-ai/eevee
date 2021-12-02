@@ -463,7 +463,7 @@ def merge_utterances(utterances):
     merged = []
 
     def _join_transcripts(transcripts):
-        return " ".join(text.strip() for text in transcripts)
+        return " ".join(text.strip() for text in transcripts if text != None)
 
     indexed_results = [enumerate(utt) for utt in utterances]
 
@@ -490,7 +490,8 @@ def get_n_transcripts(utterances, n=3) -> List[str]:
         return [""]
     for x in range(min(n, len(utterances[0]))):
         try:
-            transcripts.append(utterances[0][x]["transcript"])
+            if utterances[0][x]["transcript"]:
+                transcripts.append(utterances[0][x]["transcript"])
         except (KeyError, IndexError):
             pass
     if transcripts == []:
