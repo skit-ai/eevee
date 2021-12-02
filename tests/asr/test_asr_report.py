@@ -10,9 +10,9 @@ def test_asr_report():
 
     expected = pd.DataFrame(
         {
-            "Metric": ["WER", "Utterance FPR", "Utterance FNR", "SER"],
-            "Value": [0.5714285714285715, 0.5, 0.25, 0.6666666666666666],
-            "Support": [6, 2, 4, 6],
+            "Metric": ["WER", "Utterance FPR", "Utterance FNR", "SER", "Min 3 WER", "Min WER"],
+            "Value": [0.5714285714285715, 0.5, 0.25, 0.6666666666666666, 0.5714285714285715, 0.5714285714285715],
+            "Support": [6, 2, 4, 6, 6, 6],
         }
     )
     expected.set_index("Metric", inplace=True)
