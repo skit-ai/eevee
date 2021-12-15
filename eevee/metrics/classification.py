@@ -3,8 +3,8 @@ from typing import Any, Dict, List, Optional, Set, Union
 import pandas as pd
 from sklearn.metrics import classification_report, precision_recall_fscore_support
 
-TRUE = "intent_x"
-PREDICTED = "intent_y"
+TRUE_COL = "intent_x"
+PREDICTED_COL = "intent_y"
 
 ALIAS_SUFFIX = "{}-alias"
 LAYER_PREFIX = "layer-{}"
@@ -21,12 +21,12 @@ def intent_report(
     df = pd.merge(true_labels, pred_labels, on="id", how="inner")
 
     # for cases where we are seeing NaN values popping up.
-    df[[TRUE, PREDICTED]] = df[[TRUE, PREDICTED]].fillna(value="_")
+    df[[TRUE_COL, PREDICTED_COL]] = df[[TRUE_COL, PREDICTED_COL]].fillna(value="_")
 
     # aliasing intents
     if intent_aliases is not None:
         alias_dict = {intent: alias for alias, intent_list in intent_aliases.items() for intent in intent_list}
-        for col in [TRUE, PREDICTED]:
+        for col in [TRUE_COL, PREDICTED_COL]:
             df[col] = df[col].apply(lambda intent: alias_dict.get(intent, intent))
 
     # vanilla case, where just ordinary classification report is required.
@@ -34,7 +34,7 @@ def intent_report(
     if intent_groups is None and not breakdown:
 
         return classification_report(
-        df[TRUE], df[PREDICTED], output_dict=return_output_as_dict, zero_division=0
+        df[TRUE_COL], df[PREDICTED_COL], output_dict=return_output_as_dict, zero_division=0
         )
 
     # grouping is required
@@ -45,7 +45,7 @@ def intent_report(
         # odd behavior on even trials. 
         ig_replica = {k: v for k, v in intent_groups.items()}
 
-        unique_intents = set(df[TRUE]).union(set(df[PREDICTED]))
+        unique_intents = set(df[TRUE_COL]).union(set(df[PREDICTED_COL]))
         given_intents = set()
 
         for tagged_intents in ig_replica.values():
@@ -63,7 +63,7 @@ def intent_report(
             for group_intent, tagged_intents in ig_replica.items():
 
                 group_classification_report = classification_report(
-                    df[TRUE], df[PREDICTED], output_dict=return_output_as_dict, zero_division=0, labels=tagged_intents
+                    df[TRUE_COL], df[PREDICTED_COL], output_dict=return_output_as_dict, zero_division=0, labels=tagged_intents
                 )
                 group_classification_report_df = pd.DataFrame(group_classification_report).transpose()
                 group_classification_report_df["support"] = group_classification_report_df["support"].astype('int32')
@@ -79,14 +79,14 @@ def intent_report(
             for group_intent, tagged_intents in ig_replica.items():
 
                 p, r, f, _ = precision_recall_fscore_support(
-                                    df[TRUE], df[PREDICTED], 
+                                    df[TRUE_COL], df[PREDICTED_COL], 
                                     labels=tagged_intents, zero_division=0, 
                                     average="weighted"
                                     )
 
 
                 # since support is None, on average='weighted' on precision_recall_fscore_support
-                support = df[TRUE].isin(tagged_intents).sum()
+                support = df[TRUE_COL].isin(tagged_intents).sum()
 
                 wgin = {
                     "group": group_intent,
@@ -158,23 +158,23 @@ def intent_layers_report(
     df = pd.merge(true_labels, pred_labels, on="id", how="inner")
 
     # for cases where we are seeing NaN values popping up.
-    df[[TRUE, PREDICTED]] = df[[TRUE, PREDICTED]].fillna(value="_")
+    df[[TRUE_COL, PREDICTED_COL]] = df[[TRUE_COL, PREDICTED_COL]].fillna(value="_")
 
     # aliasing predicted column with values provided
-    col = PREDICTED
+    col = PREDICTED_COL
     intents_dict = {value: key for key, values in intent_layers.get(col).items() for value in values}
     df[col] = df[col].apply(lambda intent: intents_dict.get(intent, intent))
 
     #aliasing true column with values provided.
-    col = TRUE
+    col = TRUE_COL
     intents_dict = {value: key for key, values in intent_layers.get(col).items() for value in values}
     df[ALIAS_SUFFIX.format(col)] = df[col].apply(lambda intent: intents_dict.get(intent, intent))
 
     # first element is taken as the name of the original layer
-    PREDICTED_LAYER = list(intent_layers.get(PREDICTED).keys())[0]
+    predicted_layer = list(intent_layers.get(PREDICTED_COL).keys())[0]
 
     # reverse aliasing dictionary - maps sublayers to original layer
-    REVERSE_OOS_DICT = {sub_layer: PREDICTED_LAYER for sub_layer in intent_layers.get(TRUE)}
+    reverse_oos_dict = {sub_layer: predicted_layer for sub_layer in intent_layers.get(TRUE_COL)}
 
     # where each intent group is having its own classification_report
     if breakdown:
@@ -182,23 +182,23 @@ def intent_layers_report(
         return_output_as_dict = True
         grouped_classification_reports = {}
 
-        for sub_layer in intent_layers.get(TRUE):
+        for sub_layer in intent_layers.get(TRUE_COL):
 
-            col = PREDICTED
-            df[ALIAS_SUFFIX.format(col)] = df[col].apply(lambda intent: {PREDICTED_LAYER: sub_layer}.get(intent, intent))
+            col = PREDICTED_COL
+            df[ALIAS_SUFFIX.format(col)] = df[col].apply(lambda intent: {predicted_layer: sub_layer}.get(intent, intent))
             grouped_classification_reports[LAYER_PREFIX.format(sub_layer)] = create_group_classification_report(
-                df[ALIAS_SUFFIX.format(TRUE)],
-                df[ALIAS_SUFFIX.format(PREDICTED)],
+                df[ALIAS_SUFFIX.format(TRUE_COL)],
+                df[ALIAS_SUFFIX.format(PREDICTED_COL)],
                 labels=[sub_layer], output_dict=return_output_as_dict
             )
 
         # normal oos calculations
-        col = TRUE
-        df[ALIAS_SUFFIX.format(col)] = df[ALIAS_SUFFIX.format(col)].apply(lambda intent: REVERSE_OOS_DICT.get(intent, intent))
-        grouped_classification_reports[LAYER_PREFIX.format(PREDICTED_LAYER)] = create_group_classification_report(
-            df[ALIAS_SUFFIX.format(TRUE)],
-            df[PREDICTED],
-            labels=[PREDICTED_LAYER], output_dict=return_output_as_dict
+        col = TRUE_COL
+        df[ALIAS_SUFFIX.format(col)] = df[ALIAS_SUFFIX.format(col)].apply(lambda intent: reverse_oos_dict.get(intent, intent))
+        grouped_classification_reports[LAYER_PREFIX.format(predicted_layer)] = create_group_classification_report(
+            df[ALIAS_SUFFIX.format(TRUE_COL)],
+            df[PREDICTED_COL],
+            labels=[predicted_layer], output_dict=return_output_as_dict
         )
 
         return grouped_classification_reports
@@ -208,25 +208,25 @@ def intent_layers_report(
 
         weighted_group_intents_numbers: List[Dict] = []
 
-        for sub_layer in intent_layers.get(TRUE):
+        for sub_layer in intent_layers.get(TRUE_COL):
             
-            col = PREDICTED
-            df[ALIAS_SUFFIX.format(col)] = df[col].apply(lambda intent: {PREDICTED_LAYER: sub_layer}.get(intent, intent))
+            col = PREDICTED_COL
+            df[ALIAS_SUFFIX.format(col)] = df[col].apply(lambda intent: {predicted_layer: sub_layer}.get(intent, intent))
             wgin = create_wgin(
-                df[ALIAS_SUFFIX.format(TRUE)],
-                df[ALIAS_SUFFIX.format(PREDICTED)],
+                df[ALIAS_SUFFIX.format(TRUE_COL)],
+                df[ALIAS_SUFFIX.format(PREDICTED_COL)],
                 label=sub_layer,
-                support=df[ALIAS_SUFFIX.format(TRUE)].isin([sub_layer]).sum()
+                support=df[ALIAS_SUFFIX.format(TRUE_COL)].isin([sub_layer]).sum()
             )
             weighted_group_intents_numbers.append(wgin)
 
-        col = TRUE
-        df[ALIAS_SUFFIX.format(col)] = df[ALIAS_SUFFIX.format(col)].apply(lambda intent: REVERSE_OOS_DICT.get(intent, intent))
+        col = TRUE_COL
+        df[ALIAS_SUFFIX.format(col)] = df[ALIAS_SUFFIX.format(col)].apply(lambda intent: reverse_oos_dict.get(intent, intent))
         wgin = create_wgin(
-            df[ALIAS_SUFFIX.format(TRUE)],
-            df[PREDICTED],
-            label=PREDICTED_LAYER,
-            support=df[ALIAS_SUFFIX.format(TRUE)].isin([PREDICTED_LAYER]).sum()
+            df[ALIAS_SUFFIX.format(TRUE_COL)],
+            df[PREDICTED_COL],
+            label=predicted_layer,
+            support=df[ALIAS_SUFFIX.format(TRUE_COL)].isin([predicted_layer]).sum()
         )
         weighted_group_intents_numbers.append(wgin)
 
