@@ -9,6 +9,51 @@ PREDICTED_COL = "intent_y"
 ALIAS_SUFFIX = "{}-alias"
 LAYER_PREFIX = "layer-{}"
 
+
+def create_group_classification_report(
+    trues: pd.Series, preds: pd.Series, 
+    labels: List[str], output_dict: bool) -> pd.DataFrame:
+    """
+    classification report on breakdown for groups.
+    """
+
+    group_classification_report = classification_report(trues, preds, 
+                                                        labels=labels,
+                                                        output_dict=output_dict,
+                                                        zero_division=0
+                                                        )
+
+    group_classification_report_df = pd.DataFrame(group_classification_report).transpose()
+    group_classification_report_df["support"] = group_classification_report_df["support"].astype('int32')
+    return group_classification_report_df
+
+
+def create_wgin_for_a_layer(
+    trues: pd.Series, preds: pd.Series, 
+    label: str, support: int) -> Dict[str, Any]:
+    """
+    weighted group intent numbers, otherwise
+    """
+
+    # since support is None, on average='weighted' on precision_recall_fscore_support
+    p, r, f, _ = precision_recall_fscore_support(trues, preds,
+                                                 labels=[label],
+                                                 average="weighted",
+                                                 zero_division=0
+                                                 )
+
+    wgin = {
+        "layer": LAYER_PREFIX.format(label),
+        "precision": p,
+        "recall": r,
+        "f1-score": f,
+        "support": support
+    }
+    
+    return wgin
+
+
+
 def intent_report(
     true_labels: pd.DataFrame,
     pred_labels: pd.DataFrame,
@@ -62,11 +107,10 @@ def intent_report(
 
             for group_intent, tagged_intents in ig_replica.items():
 
-                group_classification_report = classification_report(
-                    df[TRUE_COL], df[PREDICTED_COL], output_dict=return_output_as_dict, zero_division=0, labels=tagged_intents
+                group_classification_report_df = create_group_classification_report(
+                    df[TRUE_COL], df[PREDICTED_COL], 
+                    labels=tagged_intents, output_dict=return_output_as_dict
                 )
-                group_classification_report_df = pd.DataFrame(group_classification_report).transpose()
-                group_classification_report_df["support"] = group_classification_report_df["support"].astype('int32')
                 grouped_classification_reports[group_intent] = group_classification_report_df
 
             return grouped_classification_reports
@@ -102,50 +146,6 @@ def intent_report(
             
             return weighted_group_df
 
-
-
-
-def create_group_classification_report(
-    trues: pd.Series, preds: pd.Series, 
-    labels: List[str], output_dict: bool) -> pd.DataFrame:
-    """
-    classification report on breakdown for groups.
-    """
-
-    group_classification_report = classification_report(trues, preds, 
-                                                        labels=labels,
-                                                        output_dict=output_dict,
-                                                        zero_division=0
-                                                        )
-
-    group_classification_report_df = pd.DataFrame(group_classification_report).transpose()
-    group_classification_report_df["support"] = group_classification_report_df["support"].astype('int32')
-    return group_classification_report_df
-
-
-def create_wgin(
-    trues: pd.Series, preds: pd.Series, 
-    label: List[str], support: int) -> Dict[str, Any]:
-    """
-    weighted group intent numbers, otherwise
-    """
-
-    # since support is None, on average='weighted' on precision_recall_fscore_support
-    p, r, f, _ = precision_recall_fscore_support(trues, preds,
-                                                 labels=[label],
-                                                 average="weighted",
-                                                 zero_division=0
-                                                 )
-
-    wgin = {
-        "layer": LAYER_PREFIX.format(label),
-        "precision": p,
-        "recall": r,
-        "f1-score": f,
-        "support": support
-    }
-    
-    return wgin
 
 
 def intent_layers_report(
@@ -212,7 +212,7 @@ def intent_layers_report(
             
             col = PREDICTED_COL
             df[ALIAS_SUFFIX.format(col)] = df[col].apply(lambda intent: {predicted_layer: sub_layer}.get(intent, intent))
-            wgin = create_wgin(
+            wgin = create_wgin_for_a_layer(
                 df[ALIAS_SUFFIX.format(TRUE_COL)],
                 df[ALIAS_SUFFIX.format(PREDICTED_COL)],
                 label=sub_layer,
@@ -222,7 +222,7 @@ def intent_layers_report(
 
         col = TRUE_COL
         df[ALIAS_SUFFIX.format(col)] = df[ALIAS_SUFFIX.format(col)].apply(lambda intent: reverse_oos_dict.get(intent, intent))
-        wgin = create_wgin(
+        wgin = create_wgin_for_a_layer(
             df[ALIAS_SUFFIX.format(TRUE_COL)],
             df[PREDICTED_COL],
             label=predicted_layer,
