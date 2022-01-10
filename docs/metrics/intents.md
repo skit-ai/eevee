@@ -131,7 +131,7 @@ using tools like `jq`.
 ```python
 >>> import pandas as pd
 >>> from pprint import pprint
->>> from eevee.metrics.classification import intent_report
+>>> from eevee.metrics import intent_report, intent_layers_report
 :: stanza not found
 >>> 
 >>> true_df = pd.read_csv("data/labels_13_2071.csv")
