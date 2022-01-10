@@ -101,6 +101,26 @@ Further granular analysis on grouping is also possible. where each group has its
 eevee intent ./true-labels.csv ./pred-labels.csv --groups-yaml=assets/groups.yaml --breakdown
 ```
 
+### layering
+
+```
+eevee intent layers ./true-labels.csv ./pred-labels.csv --layers-yaml=assets/layers.yaml
+```
+
+layering is intended to know:
+* intent & kinda group level information on relevant/specific intents.
+
+This is mainly made to mitigate the acoustic_oos & lexical_oos differences in ground-truth, but predictions can be anything but we want them to be `_oos_`. so yeah.
+
+There is a the sample file `layers.yaml` under `assets` directory, which we recommend you to use.
+
+Further granular analysis on layering is also possible. where each group has its own [sklearn's classification_report](https://scikit-learn.org/stable/modules/generated/sklearn.metrics.classification_report.html#sklearn.metrics.classification_report) using this:
+
+```
+eevee intent layers ./true-labels.csv ./pred-labels.csv --layers-yaml=assets/layers.yaml --breakdown
+```
+
+
 ## JSON support
 
 All the above mentioned commands use cases, have additional `--json` flag which will be given out in stdout and can be parsed
@@ -257,6 +277,54 @@ in_scope            0.035452  0.025424  0.028195      590
         micro avg       0.718750  0.915119  0.805134      377
         macro avg       0.371731  0.469635  0.413896      377
         weighted avg    0.723654  0.915119  0.807068      377
+}
+
+
+>>> intent_layers = {
+...                 'intent_x': {
+...                     'acoustic_oos': [
+                            'audio_channel_noise', 'audio_channel_noise_hold', 
+                            'audio_speech_unclear','audio_speech_volume', 
+                            'audio_silent', 'background_noise', 
+                            'background_speech', 'other_language', '_'
+                          ], 
+...                     'lexical_oos': ['partial', 'ood', '_oos_']
+...                 }, 
+...                 'intent_y': {
+...                     'oos': ['oos', '_']
+...                 }
+...             }
+>>> 
+>>> intent_layers_report(true_df, pred_df, intent_layers=intent_layers)
+                    precision    recall  f1-score  support
+layer                                                     
+layer-acoustic_oos   0.934685  0.898268  0.916115      462
+layer-lexical_oos    0.000000  0.000000  0.000000        5
+layer-oos            0.934685  0.888651  0.911087      467
+
+>>> out = intent_layers_report(true_df, pred_df, intent_layers=intent_layers, breakdown=True)
+>>> pprint(out)
+{
+  'layer-acoustic_oos':               
+              precision    recall  f1-score  support
+acoustic_oos   0.934685  0.898268  0.916115      462
+micro avg      0.934685  0.898268  0.916115      462
+macro avg      0.934685  0.898268  0.916115      462
+weighted avg   0.934685  0.898268  0.916115      462,
+
+ 'layer-lexical_oos':               
+              precision  recall  f1-score  support
+lexical_oos         0.0     0.0       0.0        5
+micro avg           0.0     0.0       0.0        5
+macro avg           0.0     0.0       0.0        5
+weighted avg        0.0     0.0       0.0        5,
+
+ 'layer-oos':               
+              precision    recall  f1-score  support
+oos            0.934685  0.888651  0.911087      467
+micro avg      0.934685  0.888651  0.911087      467
+macro avg      0.934685  0.888651  0.911087      467
+weighted avg   0.934685  0.888651  0.911087      467
 }
 ```
 
