@@ -101,20 +101,19 @@ Further granular analysis on grouping is also possible. where each group has its
 eevee intent ./true-labels.csv ./pred-labels.csv --groups-yaml=assets/groups.yaml --breakdown
 ```
 
-### layering
+### layers (of an intent)
 
 ```
 eevee intent layers ./true-labels.csv ./pred-labels.csv --layers-yaml=assets/layers.yaml
 ```
 
-layering is intended to know:
-* intent & kinda group level information on relevant/specific intents.
+We often need to *break up* intents into sub-intents. The reasons for this range from client demands to (potential) improved performance. But, in the fragile time-space between tagging the new sub-intents in a test set and actually training a model that predicts the new intents, we dont have a way of evaluating performance - the predicted and true labels just dont match up. This occurrence motivates the need for **intent layers**.
 
-This is mainly made to mitigate the acoustic_oos & lexical_oos differences in ground-truth, but predictions can be anything but we want them to be `_oos_`. so yeah.
+As convention, the older intent is the name of the layer, and the newer sub-intents are the constituents of that layer. For example, `OOS` was an older intent that we broke up into the newer intents `Acoustic OOS` and `Lexical OOS`. So here, `OOS` is an intent layer, made up of `Acoustic OOS` and `Lexical OOS`.
 
-There is a the sample file `layers.yaml` under `assets` directory, which we recommend you to use.
+There is a the sample file `layers.yaml` under `assets` directory, which we recommend you use, to set up an intent layer. The current set up only allows evaluating one intent layer at a time, so you might need multiple runs.
 
-Further granular analysis on layering is also possible. where each group has its own [sklearn's classification_report](https://scikit-learn.org/stable/modules/generated/sklearn.metrics.classification_report.html#sklearn.metrics.classification_report) using this:
+Further granular analysis on layering is also possible. where each layer has its own [sklearn's classification_report](https://scikit-learn.org/stable/modules/generated/sklearn.metrics.classification_report.html#sklearn.metrics.classification_report) using this:
 
 ```
 eevee intent layers ./true-labels.csv ./pred-labels.csv --layers-yaml=assets/layers.yaml --breakdown
