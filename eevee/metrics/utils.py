@@ -52,9 +52,13 @@ def fpr_fnr(y_true, y_pred, labels: Tuple[Any, Any]) -> Tuple[Tuple[float, int],
 
 
 def weighted_avg_dropna(cat_report_df: pd.DataFrame):
-
-    wcat_df = cat_report_df.drop(index=["_"])
-
+    
+    try:
+        wcat_df = cat_report_df.drop(index=["_"])
+    except KeyError as e:
+        #print(e)
+        wcat_df = cat_report_df
+        
     support_sum = wcat_df["support"].sum()
 
     precision = (wcat_df["precision"] * wcat_df["support"]).sum() / support_sum

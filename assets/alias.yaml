@@ -1,16 +1,14 @@
-smalltalk:
-  - _greeting_
-  - _repeat_
-  - what
-  - hmm
-  - _confirm_
-  - _cancel_
-
-oos:
-  - _oos_
-  - _ood_
-  - audio_silent_background_talking
+acoustic_oos:
+  - audio_channel_noise
+  - audio_channel_noise_hold
+  - audio_speech_unclear
+  - audio_speech_volume
   - audio_silent
-  - broken_voice
-  - short_utterance
-  - audio_noisy
+  - background_noise
+  - background_speech
+  - other_language
+  - _ # leave `_` as it is, since it is what represents `null`, NaN values.
+lexical_oos:
+  - partial
+  - ood
+  - _oos_

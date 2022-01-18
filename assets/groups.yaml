@@ -1,0 +1,18 @@
+#acoustic_layer:
+#  - acoustic_oos
+#lexical_layer:
+#  - lexical_oos
+oos_intents:
+  - acoustic_oos
+  - lexical_oos
+smalltalk_intents:
+  - _confirm_
+  - _cancel_
+  - _repeat_
+  - _what_
+  - _greeting_
+  - request_agent
+critical_intents:
+  - booking_status
+  - booking_cancellation
+  - booking_modification
