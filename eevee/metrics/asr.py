@@ -190,7 +190,7 @@ def compute_asr_measures(
     )
 
     # Get the operation counts (#hits, #substitutions, #deletions, #insertions)
-    H, S, D, I = _get_operation_counts(truth, hypothesis)
+    H, S, D, I, _ = _get_operation_counts(truth, hypothesis)
 
     # Compute Word Error Rate
     wer = float(S + D + I) / max(1, float(H + S + D))
@@ -315,7 +315,7 @@ def _get_operation_counts(
     insertions = sum(1 if op[0] == "insert" else 0 for op in editops)
     hits = len(source_string) - (substitutions + deletions)
 
-    return hits, substitutions, deletions, insertions
+    return hits, substitutions, deletions, insertions, editops
 
 
 def _get_per(truth: str, hypothesis: str) -> Tuple[float, float]:
@@ -430,6 +430,31 @@ def _get_ppl(sent: str, lm) -> float:
                 return (1 / lm.p("<UNK>")) ** (1 / len(sent))
             except KeyError:
                 return lm.counts()[0][1]
+
+
+def get_ops(truths: List[str], preds: List[str]) -> pd.DataFrame:
+    ops = []
+    ops_list = []
+    for truth, pred in zip(truths, preds):
+        truth_rep, pred_rep, truth, pred = _preprocess(
+            truth, pred, _default_transform, _default_transform
+        )
+        _, _, _, _, editops = _get_operation_counts(truth_rep, pred_rep)
+
+        for op in editops:
+            if op[0] == "insert":
+                ops_list.append(("insertion", "***", pred[op[2]]))
+            elif op[0] == "delete":
+                ops_list.append(("deletion", truth[op[1]], "***"))
+            else:
+                ops_list.append(("substitution", truth[op[1]], pred[op[2]]))
+    op_counts = Counter(ops_list)
+    for op in op_counts:
+        ops.append(
+            {"operation": op[0], "truth": op[1], "pred": op[2], "count": op_counts[op]}
+        )
+
+    return ops
 
 
 def get_alt_metric(truth: str, predictions: List[str], metric) -> List[float]:
@@ -612,6 +637,11 @@ def asr_report(
     )
     report.set_index("Metric", inplace=True)
     if dump:
-        return report, df
+        ops = pd.DataFrame(
+            get_ops(df["transcription"], df["pred_transcription"])
+        ).sort_values(by=["operation", "count"], ascending=[True, False])
+
+        return report, df, ops
+
     else:
         return report
