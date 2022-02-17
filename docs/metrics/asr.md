@@ -17,6 +17,8 @@ nav_order: 3
 | SER | Sentence Error Rate |
 | Min 3 WER | The minimum Word Error Rate when considering the first three alternatives only |
 | Min WER | The minimum Word Error Rate out of all the alternatives |
+| Short Utterance WER | WER of utterance with ground truth length of 1 or 2 words |
+| Long Utterance WER | WER of utterances with at least 3 words in ground truth |
 
 ## Data schema
 
@@ -61,13 +63,18 @@ Long Utterance WER   0.809524        3
 
 ```
 
-For users who want utternace level metrics, add the "--dump" flag like:
+For users who want utterance level metrics or edit operations, add the "--dump" flag like:
 
 ```shell
 eevee asr ./data/tagged.transcriptions.csv ./data/predicted.transcriptions.csv --dump
 ```
 
-This will add a csv file called **predicted.transcriptions-dump.csv**. The filename is based on the prediction filename given by the user
+This will add two csv files
+
+- **predicted.transcriptions-dump.csv** : File containing utterance level metrics
+- **predicted.transcriptions-ops.csv** : File containing dataset level edit operations.
+
+The filename is based on the prediction filename given by the user
 
 ### Python module
 
