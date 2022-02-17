@@ -199,7 +199,11 @@ def compute_asr_measures(
     mer = float(S + D + I) / max(1, float(H + S + D + I))
 
     # Compute Word Information Preserved
-    wip = (float(H) / len(truth)) * (float(H) / len(hypothesis)) if hypothesis else 0
+    wip = (
+        (float(H) / max(1, len(truth))) * (float(H) / max(1, len(hypothesis)))
+        if hypothesis
+        else 0
+    )
 
     # Compute Word Information Lost
     wil = 1 - wip
@@ -286,8 +290,8 @@ def _preprocess(
     vocabulary = set(truth + hypothesis)
     word2char = dict(zip(vocabulary, range(len(vocabulary))))
 
-    truth_chars = [chr(word2char[w]) for w in truth]
-    hypothesis_chars = [chr(word2char[w]) for w in hypothesis]
+    truth_chars = [chr(word2char[w]) for w in truth if w not in ["", " "]]
+    hypothesis_chars = [chr(word2char[w]) for w in hypothesis if w not in ["", " "]]
 
     truth_str = "".join(truth_chars)
     hypothesis_str = "".join(hypothesis_chars)
