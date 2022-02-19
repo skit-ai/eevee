@@ -567,6 +567,14 @@ def asr_report(
     # sentence error rate = number of sentences with error / number of sentences
     ser = len(list(filter(lambda x: x > 0, df["wer"].tolist()))) / len(df["wer"])
 
+    # short utterance WER. Short deifined as less than or equal to 2 words
+    short_utterance_len = 3
+    df["length"] = df["transcription"].apply(lambda x: len(x.strip().split()))
+    short_utterance_df = df[(df["length"] > 0) & (df["length"] < short_utterance_len)]
+
+    # long utterance WER
+    long_utterance_df = df[df["length"] >= short_utterance_len]
+
     # TODO: Find WER over the corpus (like this → https://kaldi-asr.org/doc/compute-wer_8cc.html)
     report = pd.DataFrame(
         {
@@ -577,6 +585,8 @@ def asr_report(
                 "SER",
                 "Min 3 WER",
                 "Min WER",
+                "Short Utterance WER",
+                "Long Utterance WER",
             ],
             "Value": [
                 df["wer"].mean(),
@@ -585,6 +595,8 @@ def asr_report(
                 ser,
                 df["min_3_wer"].mean(),
                 df["min_10_wer"].mean(),
+                short_utterance_df["wer"].mean(),
+                long_utterance_df["wer"].mean(),
             ],
             "Support": [
                 len(df),
@@ -593,6 +605,8 @@ def asr_report(
                 len(df),
                 len(df),
                 len(df),
+                len(short_utterance_df),
+                len(long_utterance_df),
             ],
         }
     )
