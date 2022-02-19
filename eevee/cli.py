@@ -88,11 +88,11 @@ def main():
                 intent_groups=intent_groups,
                 breakdown=breakdown,
             )
-            
+
         # output can be str when return_output_as_dict=False, intent_groups is None and breakdown=False
         # output can be dict when return_output_as_dict=True (intent_groups can be present or absent)
-            # can be dict of dict, or dict of str, pd.DataFrames
-        # output can be pd.DataFrame when return_output_as_dict=False, intent_groups is present and breakdown=False            
+        # can be dict of dict, or dict of str, pd.DataFrames
+        # output can be pd.DataFrame when return_output_as_dict=False, intent_groups is present and breakdown=False
 
         if args["--json"]:
 
@@ -125,17 +125,24 @@ def main():
                 print(output)
 
     elif args["asr"]:
-        true_labels = pd.read_csv(args["<true-labels>"], usecols=["id", "transcription"])
+        true_labels = pd.read_csv(
+            args["<true-labels>"], usecols=["id", "transcription"]
+        )
         pred_labels = pd.read_csv(args["<pred-labels>"], usecols=["id", "utterances"])
 
         dump = True if args["--dump"] else False
-        
+
         if dump:
-            output, breakdown = asr_report(true_labels, pred_labels, dump)
-            breakdown.to_csv(f'{args["<pred-labels>"].replace(".csv", "")}-dump.csv', index=False)
+            output, breakdown, ops = asr_report(true_labels, pred_labels, dump)
+            breakdown.to_csv(
+                f'{args["<pred-labels>"].replace(".csv", "")}-dump.csv', index=False
+            )
+            ops.to_csv(
+                f'{args["<pred-labels>"].replace(".csv", "")}-ops.csv', index=False
+            )
         else:
             output = asr_report(true_labels, pred_labels)
-        
+
         if args["--json"]:
             print(output.to_json(indent=2))
         else:
@@ -158,12 +165,11 @@ def main():
         else:
             print(output)
 
-
             # TODO: handle really large reports
             # if isinstance(output, pd.DataFrame):
 
             #     with pd.option_context(
-            #         'display.max_rows', None, 
+            #         'display.max_rows', None,
             #         'display.max_columns', None
             #     ):
             #         print(output)
