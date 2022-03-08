@@ -4,7 +4,7 @@ title: Entities and Slots
 parent: Metrics
 nav_order: 2
 ---
-Refer to [this](https://github.com/skit-ai/onboarding/blob/master/ml/slot-reporting/slot-evaluation-and-reporting.ipynb) document to understand more about slots, entities, and their metrics.
+Refer to [this](https://github.com/skit-ai/onboarding/blob/master/ml/slots-and-entities/slots-and-entities.ipynb) document to understand more about slots, entities, and their metrics.
 
 # Slots
 `TODO`
