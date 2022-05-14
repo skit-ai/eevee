@@ -39,7 +39,7 @@ from docopt import docopt
 from eevee import __version__
 from eevee.metrics import intent_report
 from eevee.metrics.classification import intent_layers_report
-from eevee.metrics.asr import asr_report
+from eevee.metrics.asr import asr_report, process_noise_info
 from eevee.metrics.entity import categorical_entity_report, entity_report
 from eevee.utils import parse_yaml
 
@@ -138,12 +138,12 @@ def main():
 
         if args["--noisy"]:
 
-            noisy, not_noisy = process_noise_info(true_labels, pred_labels)
-            data_dict = {"noisy": noisy,"not-noisy": not_noisy}
+            noisy_dict, not_noisy_dict = process_noise_info(true_labels, pred_labels)
+            input_dict = {"noisy": noisy_dict,"not-noisy": not_noisy_dict}
             output_dict = {}
 
             if dump:
-                for key, subset in data_dict.items():
+                for key, subset in input_dict.items():
                     output, breakdown, ops = asr_report(subset["true"], subset["pred"], dump)
                     output_dict[key] = output
                     breakdown.to_csv(
@@ -153,7 +153,7 @@ def main():
                         f'{key}-{args["<pred-labels>"].replace(".csv", "")}-ops.csv', index=False
                     )
             else:
-                for key, subset in data_dict.items():
+                for key, subset in input_dict.items():
                     output = asr_report(subset["true"], subset["pred"])
                     output_dict[key] = output
 

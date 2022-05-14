@@ -5,6 +5,10 @@ from functools import reduce
 from operator import mul
 from typing import Any, Dict, List, Mapping, Tuple, Union
 
+from pandas import Series, DataFrame
+from pandas.core.arrays import ExtensionArray
+from pandas.core.generic import NDFrame
+
 import eevee.transforms as tr
 import Levenshtein
 import numpy as np
@@ -651,5 +655,41 @@ def asr_report(
         return report
 
 
-def process_noise_info(true_labels: pd.DataFrame, pred_labels: pd.DataFrame):
+def extract_info_tags(transcription: str) -> str:
     pass
+
+
+def clean_info_tags(transcription: str) -> str:
+    pass
+
+
+## change this if you want to change the definition of noisy
+def define_noisy(tag):
+    if tag is None:
+        return -1
+    elif "silent" in tag:
+        return "silent"
+    else:
+        return "noisy"
+
+
+def process_noise_info(
+        true_labels: pd.DataFrame, pred_labels: pd.DataFrame
+) -> Tuple[Dict[str, pd.DataFrame], Dict[str, pd.DataFrame]]:
+
+    df = pd.merge(true_labels, pred_labels, on="id", how="inner")
+    
+    ## separate out info tags in transcripts and clean the original transcriptions
+    df["info-tag"] = df["transcription"].apply(lambda trancription: extract_info_tags(trancription))
+    df["cleaned-transcription"] = df["transcription"].apply(lambda transcription: clean_info_tags(trancription))
+    
+    ## separate noisy and not-noisy subsets
+    df["noise-label"] = df["info-tag"].apply(lambda tag: define_noisy(tag))
+    noisy_df = df[df["noise-label"]=="noisy"]
+    not_noisy_df = df[df["noise-label"]!="noisy"]
+    
+    data_subsets: List = []
+    for df in [noisy_df, not_noisy_df]:
+        data_subsets.append({"true": df[["id", "transcription"]], "pred": df[["id", "utterances"]]})
+        
+    return tuple(data_subsets)
