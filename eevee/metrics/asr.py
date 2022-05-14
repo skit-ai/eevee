@@ -690,6 +690,6 @@ def process_noise_info(
     
     data_subsets: List = []
     for df in [noisy_df, not_noisy_df]:
-        data_subsets.append({"true": df[["id", "transcription"]], "pred": df[["id", "utterances"]]})
+        data_subsets.append({"true": df[["id", "cleaned-transcription"]], "pred": df[["id", "utterances"]]})
         
     return tuple(data_subsets)
