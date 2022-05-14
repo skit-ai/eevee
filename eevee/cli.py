@@ -4,7 +4,7 @@ eevee
 Usage:
   eevee intent <true-labels> <pred-labels> [--json] [--alias-yaml=<alias_yaml_path>] [--groups-yaml=<groups-yaml_path>] [--breakdown]
   eevee intent layers <true-labels> <pred-labels> --layers-yaml=<layers_yaml_path> [--breakdown] [--json]
-  eevee asr <true-labels> <pred-labels> [--json] [--dump]
+  eevee asr <true-labels> <pred-labels> [--json] [--dump] [--noisy]
   eevee entity <true-labels> <pred-labels> [--json] [--breakdown] [--dump]
 
 Options:
@@ -16,6 +16,10 @@ Options:
   --dump                            If true, 
                                     * dumps the prediction fp, fn, mm errors as csvs.
                                     * ASR metrics on an utterance level
+  --noisy                           If true,
+                                        * splits the dataset into noisy and non-noisy subsets
+                                          and returns results for both separately
+                                        * expects uncleaned asr alternatives, with informational tags
   --alias-yaml=<alias_yaml_path>    Path to aliasing yaml for intents.
   --groups-yaml=<groups_yaml_path>  Path to intent groups yaml for batched evaluation.
   --layers-yaml=<layers_yaml_path>  Path to intent layers yaml for evaluation of sub layers.
@@ -132,21 +136,52 @@ def main():
 
         dump = True if args["--dump"] else False
 
-        if dump:
-            output, breakdown, ops = asr_report(true_labels, pred_labels, dump)
-            breakdown.to_csv(
-                f'{args["<pred-labels>"].replace(".csv", "")}-dump.csv', index=False
-            )
-            ops.to_csv(
-                f'{args["<pred-labels>"].replace(".csv", "")}-ops.csv', index=False
-            )
-        else:
-            output = asr_report(true_labels, pred_labels)
+        if args["--noisy"]:
 
-        if args["--json"]:
-            print(output.to_json(indent=2))
+            noisy, not_noisy = process_noise_info(true_labels, pred_labels)
+            data_dict = {"noisy": noisy,"not-noisy": not_noisy}
+            output_dict = {}
+
+            if dump:
+                for key, subset in data_dict.items():
+                    output, breakdown, ops = asr_report(subset["true"], subset["pred"], dump)
+                    output_dict[key] = output
+                    breakdown.to_csv(
+                        f'{key}-{args["<pred-labels>"].replace(".csv", "")}-dump.csv', index=False
+                    )
+                    ops.to_csv(
+                        f'{key}-{args["<pred-labels>"].replace(".csv", "")}-ops.csv', index=False
+                    )
+            else:
+                for key, subset in data_dict.items():
+                    output = asr_report(subset["true"], subset["pred"])
+                    output_dict[key] = output
+
+            if args["--json"]:
+                for key, output in output_dict.items():
+                    print(key)
+                    print(output.to_json(indent=2))
+            else:
+                for key, output in output_dict.items():
+                    print(key)
+                    print(output)
+
         else:
-            print(output)
+            if dump:
+                output, breakdown, ops = asr_report(true_labels, pred_labels, dump)
+                breakdown.to_csv(
+                    f'{args["<pred-labels>"].replace(".csv", "")}-dump.csv', index=False
+                )
+                ops.to_csv(
+                    f'{args["<pred-labels>"].replace(".csv", "")}-ops.csv', index=False
+                )
+            else:
+                output = asr_report(true_labels, pred_labels)
+
+            if args["--json"]:
+                print(output.to_json(indent=2))
+            else:
+                print(output)
 
     elif args["entity"]:
         true_labels = pd.read_csv(args["<true-labels>"])

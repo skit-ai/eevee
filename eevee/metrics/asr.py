@@ -649,3 +649,7 @@ def asr_report(
 
     else:
         return report
+
+
+def process_noise_info(true_labels: pd.DataFrame, pred_labels: pd.DataFrame):
+    pass
