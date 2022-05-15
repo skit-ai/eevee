@@ -1,4 +1,4 @@
-from eevee.metrics.asr import extract_info_tags, clean_info_tags, define_noisy
+from eevee.metrics.asr import extract_info_tags, remove_info_tags, define_noisy
 
 
 def test_process_noise_info():
@@ -11,5 +11,5 @@ def test_process_noise_info():
 
 	for transcription, tag, label in zip(noisy_transcriptions, noise_tags, noise_labels):
 		assert extract_info_tags(transcription) == tag
-		assert clean_info_tags(transcription) == clean_transcription
+		assert remove_info_tags(transcription) == clean_transcription
 		assert define_noisy(tag) == label

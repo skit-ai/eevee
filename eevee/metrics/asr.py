@@ -659,12 +659,12 @@ def extract_info_tags(transcription: str) -> str:
     return ""
 
 
-def clean_info_tags(transcription: str) -> str:
+def remove_info_tags(transcription: str) -> str:
     return ""
 
 
 ## change this if you want to change the definition of noisy
-def define_noisy(tag):
+def define_noisy(tag) -> int:
     if tag == "":
         return 0
     elif "silent" in tag:
@@ -685,7 +685,7 @@ def process_noise_info(
     
     ## separate out info tags in transcripts and clean the original transcriptions
     df["info-tag"] = df["transcription"].apply(lambda transcription: extract_info_tags(transcription))
-    df["cleaned-transcription"] = df["transcription"].apply(lambda transcription: clean_info_tags(transcription))
+    df["cleaned-transcription"] = df["transcription"].apply(lambda transcription: remove_info_tags(transcription))
     
     ## separate noisy and not-noisy subsets
     df["noise-label"] = df["info-tag"].apply(lambda tag: define_noisy(tag))
