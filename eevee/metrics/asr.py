@@ -656,16 +656,16 @@ def asr_report(
 
 
 def extract_info_tags(transcription: str) -> str:
-    pass
+    return ""
 
 
 def clean_info_tags(transcription: str) -> str:
-    pass
+    return ""
 
 
 ## change this if you want to change the definition of noisy
 def define_noisy(tag):
-    if tag is None:
+    if tag == "":
         return 0
     elif "silent" in tag:
         return 0
@@ -678,15 +678,19 @@ def process_noise_info(
 ) -> Tuple[Dict[str, pd.DataFrame], Dict[str, pd.DataFrame]]:
 
     df = pd.merge(true_labels, pred_labels, on="id", how="inner")
+
+    # Since empty items in true transcription is read as NaN, we have to
+    # replace them
+    df["transcription"] = df["transcription"].fillna("")
     
     ## separate out info tags in transcripts and clean the original transcriptions
-    df["info-tag"] = df["transcription"].apply(lambda trancription: extract_info_tags(trancription))
+    df["info-tag"] = df["transcription"].apply(lambda transcription: extract_info_tags(transcription))
     df["cleaned-transcription"] = df["transcription"].apply(lambda transcription: clean_info_tags(transcription))
     
     ## separate noisy and not-noisy subsets
     df["noise-label"] = df["info-tag"].apply(lambda tag: define_noisy(tag))
     noisy_df = df[df["noise-label"] == 1]
-    not_noisy_df = df[df["noise-label"] == 0]
+    not_noisy_df = df[df["noise-label"] != 1]
     
     data_subsets: List = []
     for df in [noisy_df, not_noisy_df]:
