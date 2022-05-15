@@ -666,11 +666,11 @@ def clean_info_tags(transcription: str) -> str:
 ## change this if you want to change the definition of noisy
 def define_noisy(tag):
     if tag is None:
-        return -1
+        return 0
     elif "silent" in tag:
-        return "silent"
+        return 0
     else:
-        return "noisy"
+        return 1
 
 
 def process_noise_info(
@@ -685,8 +685,8 @@ def process_noise_info(
     
     ## separate noisy and not-noisy subsets
     df["noise-label"] = df["info-tag"].apply(lambda tag: define_noisy(tag))
-    noisy_df = df[df["noise-label"] == "noisy"]
-    not_noisy_df = df[df["noise-label"] != "noisy"]
+    noisy_df = df[df["noise-label"] == 1]
+    not_noisy_df = df[df["noise-label"] == 0]
     
     data_subsets: List = []
     for df in [noisy_df, not_noisy_df]:
