@@ -27,6 +27,19 @@ version can be installed by using the following:
 pip install https://github.com/skit-ai/eevee/releases/download/1.2.1/eevee-1.2.1-py3-none-any.whl
 ```
 
+With `poetry`
+
+```bash
+poetry add "git+https://github.com/skit-ai/eevee.git@1.2.1"
+```
+
+or directly add this in `pyproject.toml`
+```toml
+[tool.poetry.dependencies]
+eevee = {git = "https://github.com/skit-ai/eevee.git", rev = "1.2.1"}
+```
+
+
 ## Usage
 
 Once installed, the most common usage pattern involves passing a reference and
