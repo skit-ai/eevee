@@ -27,24 +27,6 @@ version can be installed by using the following:
 pip install https://github.com/skit-ai/eevee/releases/download/1.2.1/eevee-1.2.1-py3-none-any.whl
 ```
 
-There is also the [cheeseshop](https://cheeseshop.vernacular.ai/eevee/) way:
-
-but only for `poetry` users:
-
-add this to your `pyproject.toml`:
-```
-[[tool.poetry.source]]
-name = "cheeseshop"
-url = "https://cheeseshop.vernacular.ai"
-```
-
-and try 
-
-```bash
-poetry add eevee
-```
-
-
 ## Usage
 
 Once installed, the most common usage pattern involves passing a reference and
