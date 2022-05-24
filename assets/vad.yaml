@@ -1,0 +1,7 @@
+data-columns:
+  id: id
+  truth: truth
+  predicted: predicted
+barge-in:
+  error: .1
+  cutoff: .2
