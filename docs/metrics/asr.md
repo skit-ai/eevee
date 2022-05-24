@@ -76,6 +76,14 @@ This will add two csv files
 
 The filename is based on the prediction filename given by the user
 
+For users who want the breakdown according to noisy/non-noisy audios, using the "--noisy" flag like:
+
+```shell
+eevee asr ./data/tagged.transcriptions.csv ./data/predicted.transcriptions.csv --noisy
+```
+
+results in two DataFrames getting predicted, one each for the noisy/non-noisy classes.
+
 ### Python module
 
 ```python
