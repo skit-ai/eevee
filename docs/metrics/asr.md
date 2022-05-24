@@ -76,13 +76,18 @@ This will add two csv files
 
 The filename is based on the prediction filename given by the user
 
-For users who want the breakdown according to noisy/non-noisy audios, using the "--noisy" flag like:
+----                                                                                                                                                                                     
+
+For users who want ASR metrics reported separately on `noisy` and `non-noisy` subsets of audios, 
+use the "--noisy" flag like:
 
 ```shell
 eevee asr ./data/tagged.transcriptions.csv ./data/predicted.transcriptions.csv --noisy
 ```
 
-results in two DataFrames getting predicted, one each for the noisy/non-noisy classes.
+Results are in two DataFrames - for each of `noisy` and `non-noisy` subsets, in order. An important note 
+here, is that the transcriptions in `tagged.transcriptions.csv` are expected to contain informational tags,
+like - `<audio_silent>`, `<inaudible>`, etc - which are normally removed when not using the "--noisy" flag.
 
 ### Python module
 
