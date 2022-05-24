@@ -655,7 +655,7 @@ def asr_report(
         return report
 
 
-def extract_info_tags(transcription: str) -> str:
+def extract_info_tags(transcription: str) -> List[str]:
     match_obj = re.search(
         "(\<.*?\>)|(<[a-z]+)|([a-z]+>)|([a-z]+_[a-z]+)|([a-z]+_)|(_[a-z]+)",
         transcription,
@@ -663,7 +663,7 @@ def extract_info_tags(transcription: str) -> str:
     if match_obj:
         tags = [tag for tag in match_obj.groups() if tag]
         return tags
-    return ""
+    return []
 
 
 def remove_info_tags(transcription: str) -> str:
@@ -676,13 +676,14 @@ def remove_info_tags(transcription: str) -> str:
 
 
 ## change this if you want to change the definition of noisy
-def define_noisy(tag) -> int:
-    if tag == "":
-        return 0
-    elif "silent" in tag:
-        return 0
-    else:
+def define_noisy(tags: List[str]) -> int:
+    if len(tags) > 0:
+        for tag in tags:
+            if "silent" in tag:
+                return 0
         return 1
+    else:
+        return 0
 
 
 def process_noise_info(
@@ -696,7 +697,7 @@ def process_noise_info(
     df["transcription"].fillna("", inplace=True)
 
     ## separate out info tags in transcripts and clean the original transcriptions
-    df["info-tag"] = df["transcription"].apply(
+    df["info-tags"] = df["transcription"].apply(
         lambda transcription: extract_info_tags(transcription)
     )
     df["transcription"] = df["transcription"].apply(
@@ -704,7 +705,7 @@ def process_noise_info(
     )
 
     ## separate noisy and not-noisy subsets
-    df["noise-label"] = df["info-tag"].apply(lambda tag: define_noisy(tag))
+    df["noise-label"] = df["info-tags"].apply(lambda tag: define_noisy(tag))
     noisy_df = df[df["noise-label"] == 1]
     not_noisy_df = df[df["noise-label"] != 1]
 
