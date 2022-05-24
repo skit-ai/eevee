@@ -139,18 +139,22 @@ def main():
         if args["--noisy"]:
 
             noisy_dict, not_noisy_dict = process_noise_info(true_labels, pred_labels)
-            input_dict = {"noisy": noisy_dict,"not-noisy": not_noisy_dict}
+            input_dict = {"noisy": noisy_dict, "not-noisy": not_noisy_dict}
             output_dict = {}
 
             if dump:
                 for key, subset in input_dict.items():
-                    output, breakdown, ops = asr_report(subset["true"], subset["pred"], dump)
+                    output, breakdown, ops = asr_report(
+                        subset["true"], subset["pred"], dump
+                    )
                     output_dict[key] = output
                     breakdown.to_csv(
-                        f'{key}-{args["<pred-labels>"].replace(".csv", "")}-dump.csv', index=False
+                        f'{key}-{args["<pred-labels>"].replace(".csv", "")}-dump.csv',
+                        index=False,
                     )
                     ops.to_csv(
-                        f'{key}-{args["<pred-labels>"].replace(".csv", "")}-ops.csv', index=False
+                        f'{key}-{args["<pred-labels>"].replace(".csv", "")}-ops.csv',
+                        index=False,
                     )
             else:
                 for key, subset in input_dict.items():

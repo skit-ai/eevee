@@ -1,3 +1,4 @@
+import re
 import itertools
 import json
 from collections import Counter
@@ -562,7 +563,6 @@ def asr_report(
 
     # TODO: Add min-k variant
     df = pd.merge(true_labels, pred_labels, on="id", how="inner")
-
     # Since empty items in true transcription is read as NaN, we have to
     # replace them
     df["transcription"] = df["transcription"].fillna("")
@@ -656,11 +656,23 @@ def asr_report(
 
 
 def extract_info_tags(transcription: str) -> str:
+    match_obj = re.search(
+        "(\<.*?\>)|(<[a-z]+)|([a-z]+>)|([a-z]+_[a-z]+)|([a-z]+_)|(_[a-z]+)",
+        transcription,
+    )
+    if match_obj:
+        tags = [tag for tag in match_obj.groups() if tag]
+        return tags
     return ""
 
 
 def remove_info_tags(transcription: str) -> str:
-    return ""
+    transcription = re.sub(
+        "(\<.*?\>)|[`.,:;\[\]]]+|(<[a-z]+)|([a-z]+>)|([a-z]+_[a-z]+)|([a-z]+_)|(_[a-z]+)|~",
+        "",
+        transcription.strip(),
+    )
+    return transcription
 
 
 ## change this if you want to change the definition of noisy
@@ -674,26 +686,35 @@ def define_noisy(tag) -> int:
 
 
 def process_noise_info(
-        true_labels: pd.DataFrame, pred_labels: pd.DataFrame
+    true_labels: pd.DataFrame, pred_labels: pd.DataFrame
 ) -> Tuple[Dict[str, pd.DataFrame], Dict[str, pd.DataFrame]]:
 
     df = pd.merge(true_labels, pred_labels, on="id", how="inner")
 
     # Since empty items in true transcription is read as NaN, we have to
     # replace them
-    df["transcription"] = df["transcription"].fillna("")
-    
+    df["transcription"].fillna("", inplace=True)
+
     ## separate out info tags in transcripts and clean the original transcriptions
-    df["info-tag"] = df["transcription"].apply(lambda transcription: extract_info_tags(transcription))
-    df["cleaned-transcription"] = df["transcription"].apply(lambda transcription: remove_info_tags(transcription))
-    
+    df["info-tag"] = df["transcription"].apply(
+        lambda transcription: extract_info_tags(transcription)
+    )
+    df["transcription"] = df["transcription"].apply(
+        lambda transcription: remove_info_tags(transcription)
+    )
+
     ## separate noisy and not-noisy subsets
     df["noise-label"] = df["info-tag"].apply(lambda tag: define_noisy(tag))
     noisy_df = df[df["noise-label"] == 1]
     not_noisy_df = df[df["noise-label"] != 1]
-    
+
     data_subsets: List = []
     for df in [noisy_df, not_noisy_df]:
-        data_subsets.append({"true": df[["id", "cleaned-transcription"]], "pred": df[["id", "utterances"]]})
-        
+        data_subsets.append(
+            {
+                "true": df[["id", "transcription"]],
+                "pred": df[["id", "utterances"]],
+            }
+        )
+
     return tuple(data_subsets)
