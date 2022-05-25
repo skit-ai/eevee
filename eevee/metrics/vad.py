@@ -39,7 +39,7 @@ def barge_in_report(
     ID, TRUTH, PREDICTED = return_columns(params["data-columns"])
     ERROR, CUTOFF = return_params(params["barge-in"])
 
-    # merhe truth and predictions
+    # merge truth and predictions
     data = pd.merge(true_labels, pred_labels, on=ID, how="outer")
     data[PREDICTED].fillna("[]", inplace=True)
 
@@ -71,7 +71,7 @@ def barge_in_report(
         .apply(lambda captures: len([x for x in captures if x == 1]))
         .sum()
     )
-    precision = captures / data["predicted-speech"].sum()
-    recall = captures / data["truth-speech"].sum()
+    precision = captures / data["predicted-speech"].apply(lambda segs: len(segs)).sum()
+    recall = captures / data["truth-speech"].apply(lambda segs: len(segs)).sum()
 
     return {"precision": precision, "recall": recall}
