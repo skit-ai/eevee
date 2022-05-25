@@ -1,5 +1,6 @@
 from typing import List, Dict
 import pandas as pd
+import ast
 
 
 def return_columns(columns: Dict):
@@ -46,13 +47,15 @@ def barge_in_report(
     data["truth-speech"] = data[TRUTH].apply(
         lambda tag: [
             seg
-            for seg in tag
+            for seg in ast.literal_eval(tag)
             if map_types(seg["type"]) == "SPEECH"
             and seg["time-range"][1] - seg["time-range"][0] > ERROR
         ]
     )
     data["predicted-speech"] = data[PREDICTED].apply(
-        lambda tag: [seg for seg in tag if map_types(seg["type"]) == "SPEECH"]
+        lambda tag: [
+            seg for seg in ast.literal_eval(tag) if map_types(seg["type"]) == "SPEECH"
+        ]
     )
 
     # calculate metrics
