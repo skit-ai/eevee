@@ -6,10 +6,6 @@ from functools import reduce
 from operator import mul
 from typing import Any, Dict, List, Mapping, Tuple, Union
 
-from pandas import Series, DataFrame
-from pandas.core.arrays import ExtensionArray
-from pandas.core.generic import NDFrame
-
 import eevee.transforms as tr
 import Levenshtein
 import numpy as np
