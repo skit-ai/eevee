@@ -76,6 +76,19 @@ This will add two csv files
 
 The filename is based on the prediction filename given by the user
 
+----                                                                                                                                                                                     
+
+For users who want ASR metrics reported separately on `noisy` and `non-noisy` subsets of audios, 
+use the "--noisy" flag like:
+
+```shell
+eevee asr ./data/tagged.transcriptions.csv ./data/predicted.transcriptions.csv --noisy
+```
+
+Results are in two DataFrames - for each of `noisy` and `non-noisy` subsets, in order. An important note 
+here, is that the transcriptions in `tagged.transcriptions.csv` are expected to contain info tags, like -
+`<audio_silent>`, `<inaudible>`, etc - which aren't expected when not using the "--noisy" flag.
+
 ### Python module
 
 ```python
@@ -86,6 +99,42 @@ The filename is based on the prediction filename given by the user
 >>> pred_df = pd.read_csv("data/predicted.transcriptions.csv", usecols=["id", "utterances"])
 >>>
 >>> asr_report(true_df, pred_df)
+                    Value   Support
+Metric
+WER                  0.571429        6
+Utterance FPR        0.500000        2
+Utterance FNR        0.250000        4
+SER                  0.666667        6
+Min 3 WER            0.571429        6
+Min WER              0.571429        6
+Short Utterance WER  0.000000        1
+Long Utterance WER   0.809524        3
+
+```
+
+For ASR metrics, segregated by "noisy":
+```python
+>>> import pandas as pd
+>>> from eevee.metrics.asr import asr_report, process_noise_info
+>>>
+>>> true_df = pd.read_csv("data/tagged.transcriptions.csv", usecols=["id", "transcription"])
+>>> pred_df = pd.read_csv("data/predicted.transcriptions.csv", usecols=["id", "utterances"])
+>>>
+>>> noisy_dict, not_noisy_dict = process_noise_info(true_labels, pred_labels)
+>>>
+>>> asr_report(noisy_dict["true"], noisy_dict["pred"])
+                    Value   Support
+Metric
+WER                  0.571429        6
+Utterance FPR        0.500000        2
+Utterance FNR        0.250000        4
+SER                  0.666667        6
+Min 3 WER            0.571429        6
+Min WER              0.571429        6
+Short Utterance WER  0.000000        1
+Long Utterance WER   0.809524        3
+
+>>> asr_report(not_noisy_dict["true"], not_noisy_dict["pred"])
                     Value   Support
 Metric
 WER                  0.571429        6

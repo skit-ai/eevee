@@ -1,3 +1,4 @@
+import re
 import itertools
 import json
 from collections import Counter
@@ -558,7 +559,6 @@ def asr_report(
 
     # TODO: Add min-k variant
     df = pd.merge(true_labels, pred_labels, on="id", how="inner")
-
     # Since empty items in true transcription is read as NaN, we have to
     # replace them
     df["transcription"] = df["transcription"].fillna("")
@@ -649,3 +649,135 @@ def asr_report(
 
     else:
         return report
+
+
+def extract_info_tags(transcription: str) -> List[str]:
+    """
+    Extracts info tags from an "annotated transcription", using a regex pattern.
+    The regex matches text substrings that are enclosed by `<>`, and optionally
+    contain the `_` character.
+
+    `transcription` is a string that contains an "annotated transcription".
+
+    Returns a list of all info tags contained in the `transcription`. Empty list
+    returned, if no such tags are present.
+
+    NOTE: An "annotated transcription" is an abstraction of our (in-house TOG)
+    ASR transcription job's output, where we transcribe certain audio events
+    along with human speech.
+
+    EXAMPLE:
+        extract_info_tags("This is <inaudible> human speech") = ["<inaudible>"]
+        extract_info_tags("This is audible speech") = []
+    """
+
+    match_obj = re.search(
+        "(\<.*?\>)|(<[a-z]+)|([a-z]+>)|([a-z]+_[a-z]+)|([a-z]+_)|(_[a-z]+)",
+        transcription,
+    )
+    if match_obj:
+        tags = [tag for tag in match_obj.groups() if tag]
+        return tags
+    return []
+
+
+def remove_info_tags(transcription: str) -> str:
+    """
+    Removes info tags from an "annotated transcription", and returns a "cleaned transcription".
+
+    `transcription` is a string that contains an "annotated transcription".
+
+    Returns a "cleaned transcription" - i.e no info tags or trailing/leading spaces.
+
+    NOTE: The output here - of a "cleaned transcription" - is the expected format for subsequent
+    ASR metric calculations. See the docstring of `extract_info_tags()` for definition of an
+    "annotated transcription".
+
+    EXAMPLE:
+        remove_info_tags("This is <inaudible> human speech") = "This is  human speech"
+        remove_info_tags("This is audible speech ") = "This is audible speech"
+    """
+
+    transcription = re.sub(
+        "(\<.*?\>)|[`.,:;\[\]]]+|(<[a-z]+)|([a-z]+>)|([a-z]+_[a-z]+)|([a-z]+_)|(_[a-z]+)|~",
+        "",
+        transcription.strip(),
+    )
+    return transcription
+
+
+## change this if you want to change the definition of noisy
+def check_if_tags_is_noisy(tags: List[str]) -> int:
+    """
+    Checks if a list of info tags, contains a "noisy" tag.
+
+    `tags` is a list of strings, each containing an info tag.
+
+    Returns `1` if "noisy", `0` if not.
+
+    NOTE: Whether an info tag is "noisy" is subjective - here we define it in a very
+    specific way. Make changes if you wish.
+
+    EXAMPLE:
+        check_if_tags_is_noisy(["","inaudible"]) = 1
+        check_if_tags_is_noisy(["","audio_silent"]) = 0
+    """
+
+    if len(tags) > 0:
+        for tag in tags:
+            if "silent" in tag:
+                return 0
+        return 1
+    else:
+        return 0
+
+
+def process_noise_info(
+    true_labels: pd.DataFrame, pred_labels: pd.DataFrame
+) -> Tuple[Dict[str, pd.DataFrame], Dict[str, pd.DataFrame]]:
+    """
+    Processes true and predicted labels into "noisy" and "not noisy" subsets, based on
+    "info tags" present in the true labels.
+
+    `true_labels` is a CSV following TranscriptionLabel protobuf definition
+    from dataframes. While `pred_labels` is a CSV that follows RichTranscriptionLabel
+    protobuf definition.
+
+    Returns an ordered tuple of Dictionaries - first is "noisy" and second is "not noisy".
+    Each dictionary stores the true and predicted labels, for the associated subset, under
+    the `true` and `pred` keys respectively.
+
+    NOTE: An "info tag" is an `<>` enclosed substring that contains information about certain
+    audio events, added during transcription of human speech. If the true labels dont contain
+    any "info tags", then the subset for "not noisy" will be empty.
+    """
+
+    df = pd.merge(true_labels, pred_labels, on="id", how="inner")
+
+    # Since empty items in true transcription is read as NaN, we have to
+    # replace them
+    df["transcription"].fillna("", inplace=True)
+
+    ## separate out info tags in transcripts and clean the original transcriptions
+    df["info-tags"] = df["transcription"].apply(
+        lambda transcription: extract_info_tags(transcription)
+    )
+    df["transcription"] = df["transcription"].apply(
+        lambda transcription: remove_info_tags(transcription)
+    )
+
+    ## separate noisy and not-noisy subsets
+    df["noise-label"] = df["info-tags"].apply(lambda tag: check_if_tags_is_noisy(tag))
+    noisy_df = df[df["noise-label"] == 1]
+    not_noisy_df = df[df["noise-label"] != 1]
+
+    data_subsets: List = []
+    for df in [noisy_df, not_noisy_df]:
+        data_subsets.append(
+            {
+                "true": df[["id", "transcription"]],
+                "pred": df[["id", "utterances"]],
+            }
+        )
+
+    return tuple(data_subsets)
