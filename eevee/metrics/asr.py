@@ -747,9 +747,9 @@ def process_noise_info(
     Each dictionary stores the true and predicted labels, for the associated subset, under
     the `true` and `pred` keys respectively.
 
-    NOTE: An "info tag" is an `<>` enclosed substring that conatins information about certain
-    audio events, added during transcription of human speech. If the true lobels dont contain
-    any "info tags", then the sybset for "not noisy" will be empty.
+    NOTE: An "info tag" is an `<>` enclosed substring that contains information about certain
+    audio events, added during transcription of human speech. If the true labels dont contain
+    any "info tags", then the subset for "not noisy" will be empty.
     """
 
     df = pd.merge(true_labels, pred_labels, on="id", how="inner")
