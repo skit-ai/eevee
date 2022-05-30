@@ -24,19 +24,19 @@ For now, you have to install eevee using Github release URLs. The current
 version can be installed by using the following:
 
 ```bash
-pip install https://github.com/skit-ai/eevee/releases/download/1.2.1/eevee-1.2.1-py3-none-any.whl
+pip install https://github.com/skit-ai/eevee/releases/download/1.3.0/eevee-1.3.0-py3-none-any.whl
 ```
 
 With `poetry`
 
 ```bash
-poetry add "git+https://github.com/skit-ai/eevee.git@1.2.1"
+poetry add "git+https://github.com/skit-ai/eevee.git@1.3.0"
 ```
 
 or directly add this in `pyproject.toml`
 ```toml
 [tool.poetry.dependencies]
-eevee = {git = "https://github.com/skit-ai/eevee.git", rev = "1.2.1"}
+eevee = {git = "https://github.com/skit-ai/eevee.git", rev = "1.3.0"}
 ```
 
 
