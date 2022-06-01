@@ -65,8 +65,8 @@ def barge_in_report(
     # calculate metrics
     data["speech-captured"] = data.apply(
         lambda row: [
-            match_predictions(pred_seg, row["truth-speech"], error=ERROR, cutoff=CUTOFF)
-            for pred_seg in row["predicted-speech"]
+            match_predictions(true_seg, row["predicted-speech"], error=ERROR, cutoff=CUTOFF)
+            for true_seg in row["truth-speech"]
         ],
         axis=1,
     )
