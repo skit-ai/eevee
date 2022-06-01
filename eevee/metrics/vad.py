@@ -63,19 +63,36 @@ def barge_in_report(
     )
 
     # calculate metrics
-    data["speech-captured"] = data.apply(
+    data["truth-captured"] = data.apply(
         lambda row: [
-            match_predictions(true_seg, row["predicted-speech"], error=ERROR, cutoff=CUTOFF)
-            for true_seg in row["truth-speech"]
+            match_predictions(seg, row["predicted-speech"], error=ERROR, cutoff=CUTOFF)
+            for seg in row["truth-speech"]
         ],
         axis=1,
     )
-    captures = (
-        data["speech-captured"]
+    truth_captures = (
+        data["truth-captured"]
         .apply(lambda captures: len([x for x in captures if x == 1]))
         .sum()
     )
-    precision = captures / data["predicted-speech"].apply(lambda segs: len(segs)).sum()
-    recall = captures / data["truth-speech"].apply(lambda segs: len(segs)).sum()
+
+    data["predicted-captured"] = data.apply(
+        lambda row: [
+            match_predictions(seg, row["truth-speech"], error=ERROR, cutoff=CUTOFF)
+            for seg in row["predicted-speech"]
+        ],
+        axis=1,
+    )
+    predicted_captures = (
+        data["predicted-captured"]
+        .apply(lambda captures: len([x for x in captures if x == 1]))
+        .sum()
+    )
+
+    precision = (
+        predicted_captures
+        / data["predicted-speech"].apply(lambda segs: len(segs)).sum()
+    )
+    recall = truth_captures / data["truth-speech"].apply(lambda segs: len(segs)).sum()
 
     return {"precision": precision, "recall": recall}
