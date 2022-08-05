@@ -26,10 +26,7 @@ def is_captured(true_segment, pred_segment, error: float = 0.1, cutoff: float = 
     true_start, true_end = true_segment["time-range"]
     pred_start, pred_end = pred_segment["time-range"]
 
-    return (
-        (true_start < pred_start)
-        and (pred_start - (true_start-error) < cutoff)
-    )
+    return (true_start < pred_start) and (pred_start - (true_start - error) < cutoff)
 
 
 def match_truth(
@@ -39,6 +36,7 @@ def match_truth(
         if is_captured(true_seg, pred_seg, error=error, cutoff=cutoff):
             return 1
     return 0
+
 
 def match_prediction(
     pred_seg: Dict, true_segments: List[Dict], error: float = 0.1, cutoff: float = 0.2
@@ -70,7 +68,7 @@ def barge_in_report(
                 if (map_type(seg) == "SPEECH")
                 # and (map_length(seg) > ERROR)
             ],
-            key=lambda seg: seg["time-range"][0]
+            key=lambda seg: seg["time-range"][0],
         )
     )
     data["truth-speech-exists"] = data["truth-speech"].apply(
@@ -79,12 +77,8 @@ def barge_in_report(
 
     data["predicted-speech"] = data[PREDICTED].apply(
         lambda tag: sorted(
-            [
-                seg
-                for seg in ast.literal_eval(tag)
-                if (map_type(seg) == "SPEECH")
-            ],
-            key=lambda seg: seg["time-range"][0]
+            [seg for seg in ast.literal_eval(tag) if (map_type(seg) == "SPEECH")],
+            key=lambda seg: seg["time-range"][0],
         )
     )
     data["predicted-speech-exists"] = data["predicted-speech"].apply(
@@ -99,7 +93,6 @@ def barge_in_report(
         ],
         axis=1,
     )
-    truth_captures = data["truth-captured"].apply(lambda captures: 1 if 1 in captures else 0).sum()
 
     data["predicted-captured"] = data.apply(
         lambda row: [
@@ -108,9 +101,16 @@ def barge_in_report(
         ],
         axis=1,
     )
-    predicted_captures = data["predicted-captured"].apply(lambda captures: 1 if captures[0] == 1 else 0).sum()
 
-    recall = truth_captures / data["truth-speech-exists"].sum()
-    precision = predicted_captures / data["predicted-speech-exists"].sum()
+    recall = (
+        data[data["truth-speech-exists"] == 1]["truth-captured"]
+        .apply(lambda captures: 1 if 1 in captures else 0)
+        .mean()
+    )
+    precision = (
+        data[data["predicted-speech-exists"] == 1]["predicted-captured"]
+        .apply(lambda captures: 1 if captures[0] == 1 else 0)
+        .mean()
+    )
 
     return {"precision": precision, "recall": recall}
