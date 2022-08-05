@@ -3,5 +3,5 @@ data-columns:
   truth: truth
   predicted: predicted
 barge-in:
-  error: .1
+  error: .05
   cutoff: .2

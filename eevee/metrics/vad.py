@@ -26,7 +26,7 @@ def is_captured(true_segment, pred_segment, error: float = 0.1, cutoff: float = 
     true_start, true_end = true_segment["time-range"]
     pred_start, pred_end = pred_segment["time-range"]
 
-    return (true_start < pred_start) and (pred_start - (true_start - error) < cutoff)
+    return ((true_start - error) < pred_start) and (pred_start - (true_start + error) <= cutoff)
 
 
 def match_truth(
@@ -109,7 +109,7 @@ def barge_in_report(
     )
     precision = (
         data[data["predicted-speech-exists"] == 1]["predicted-captured"]
-        .apply(lambda captures: 1 if captures[0] == 1 else 0)
+        .apply(lambda captures: 1 if 1 in captures[:1] else 0)
         .mean()
     )
 
